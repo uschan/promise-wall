@@ -1,6 +1,10 @@
 import * as THREE from "three"
 import { gsap } from "gsap"
 import type { PaperKind, PromiseItem } from "../lib/types"
+
+// Match the original three r128 look: treat hex colors as linear (no sRGB→linear
+// conversion), which renders brighter/warmer — the newer default darkens the scene.
+THREE.ColorManagement.enabled = false
 import { makePaperTexture, makePhotoTexture, makeTapeTexture, makeWallTexture, makeWoodTexture } from "./textures"
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
@@ -322,6 +326,7 @@ export class WallEngine {
     key.shadow.radius = 4
     this.scene.add(key)
     const fill = new THREE.PointLight(0xffd9ad, 0.22, 90)
+    fill.decay = 0
     fill.position.set(-18, 4, 20)
     this.scene.add(fill)
 
