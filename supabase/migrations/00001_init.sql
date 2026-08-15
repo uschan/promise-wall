@@ -63,6 +63,12 @@ as $$
     and created_at > now() - interval '1 day';
 $$;
 
+-- settings table is referenced by promise_limit(); create it before the function
+create table if not exists public.settings (
+  key text primary key,
+  value jsonb not null
+);
+
 create or replace function public.promise_limit()
 returns integer
 language sql
@@ -188,10 +194,6 @@ create policy "pw_delete_reports_admin" on public.reports for delete using (
 );
 
 -- 5) Settings (admin-managed content) -------------------------
-create table if not exists public.settings (
-  key text primary key,
-  value jsonb not null
-);
 alter table public.settings enable row level security;
 drop policy if exists "pw_read_settings" on public.settings;
 create policy "pw_read_settings" on public.settings for select using (true);
