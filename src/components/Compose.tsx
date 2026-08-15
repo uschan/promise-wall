@@ -1,11 +1,11 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
 import { PAPERS } from "../lib/papers"
 import { DEFAULT_CATEGORIES, categoryLabel } from "../lib/categories"
 import { isSupabaseConfigured } from "../lib/supabase"
-import { upsertPromise } from "../lib/api"
+import { upsertPromise, uploadPhoto } from "../lib/api"
 import type { PaperKind, PromiseItem } from "../lib/types"
 
 export function Compose() {
@@ -18,19 +18,51 @@ export function Compose() {
   const userId = useAppStore((s) => s.userId)
   const profile = useAppStore((s) => s.profile)
   const queryClient = useQueryClient()
+  const fileRef = useRef<HTMLInputElement | null>(null)
 
   const [text, setText] = useState("")
   const [category, setCategory] = useState("Self-Growth")
   const [paper, setPaper] = useState<PaperKind>("classic")
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState("")
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
 
   if (!open) return null
 
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhoto(file)
+    const reader = new FileReader()
+    reader.onload = () => setPhotoPreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const removePhoto = () => {
+    setPhoto(null)
+    setPhotoPreview("")
+    if (fileRef.current) fileRef.current.value = ""
+  }
+
   const place = async () => {
     const trimmed = text.trim()
     if (!trimmed) return
     setError("")
+
+    let imageData: string | undefined
+    if (photo) {
+      try {
+        imageData =
+          isSupabaseConfigured && userId
+            ? await uploadPhoto(photo, userId)
+            : photoPreview
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+        return
+      }
+    }
+
     const promise: PromiseItem = {
       id: `p${Date.now()}`,
       text: trimmed,
@@ -39,7 +71,9 @@ export function Compose() {
       paper,
       status: "active",
       createdAt: Date.now(),
+      imageData,
     }
+
     setSaving(true)
     try {
       if (isSupabaseConfigured && userId) {
@@ -56,6 +90,7 @@ export function Compose() {
     setSaving(false)
     setComposeOpen(false)
     setText("")
+    removePhoto()
     select(promise.id)
   }
 
@@ -96,6 +131,19 @@ export function Compose() {
             ),
           )}
         </div>
+        <div className="field-label">{t("compose.photo")}</div>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+        <button className="pill" onClick={() => fileRef.current?.click()}>
+          {t("compose.attach")}
+        </button>
+        {photoPreview && (
+          <div className="photo-preview">
+            <img src={photoPreview} alt="" />
+            <button className="photo-remove" onClick={removePhoto} aria-label="Remove">
+              ×
+            </button>
+          </div>
+        )}
         {error && <p className="form-error">{error}</p>}
         <div className="compose-actions">
           <button className="pill" onClick={() => setComposeOpen(false)}>

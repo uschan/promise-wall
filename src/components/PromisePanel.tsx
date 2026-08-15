@@ -43,6 +43,7 @@ export function PromisePanel() {
       )}
       <h2 className="p-title">{promise.text}</h2>
       {promise.body && <p className="p-body">{promise.body}</p>}
+      {promise.imageData && <img className="p-image" src={promise.imageData} alt="" />}
       <p className="p-author">— {promise.author}</p>
       <div className="p-actions">
         <button className="pill">{t("panel.save")}</button>

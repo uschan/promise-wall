@@ -133,6 +133,23 @@ export async function deletePromise(id: string): Promise<void> {
   if (error) throw error
 }
 
+// ---------- photos ----------
+const PHOTO_BUCKET = "promise-photos"
+
+/** Uploads a photo to Storage and returns its public URL. */
+export async function uploadPhoto(file: File, userId: string): Promise<string> {
+  const client = requireClient()
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg"
+  const path = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`
+  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  })
+  if (error) throw error
+  const { data } = client.storage.from(PHOTO_BUCKET).getPublicUrl(path)
+  return data.publicUrl
+}
+
 /** Realtime subscription for cross-device promise sync. Returns an unsubscribe fn. */
 export function subscribePromises(onChange: () => void): () => void {
   if (!supabase) return () => {}

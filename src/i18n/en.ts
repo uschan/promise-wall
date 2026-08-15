@@ -31,6 +31,8 @@ export const en = {
   "compose.cancel": "Cancel",
   "compose.place": "Place it on the wall",
   "compose.save": "Save changes",
+  "compose.photo": "Photo",
+  "compose.attach": "Attach a picture",
   "panel.save": "Save Promise",
   "panel.saved": "Saved to collection",
   "panel.report": "Report",
