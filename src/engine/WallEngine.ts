@@ -121,6 +121,7 @@ export class WallEngine {
   // camera drag/zoom state
   private cam = { x: 0, y: 0, z: 34, tx: 0, ty: 0, tz: 34 }
   private downPos: { sx: number; sy: number; cx: number; cy: number } | null = null
+  private moved = false
   private hovered: THREE.Group | null = null
   private pinHead = new THREE.SphereGeometry(0.17, 20, 16)
   private pinShaft = new THREE.CylinderGeometry(0.028, 0.028, 0.4, 10)
@@ -171,7 +172,7 @@ export class WallEngine {
     const sample = promises.map((p) => `${p.text} ${p.body ?? ""}`).join(" ")
     await this.loadFonts(sample)
     for (const g of this.cards) {
-      this.group.remove(g)
+      this.scene.remove(g)
       g.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           o.geometry.dispose()
@@ -623,6 +624,14 @@ export class WallEngine {
       this.renderer.domElement.style.cursor = "crosshair"
       return
     }
+    if (this.downPos) {
+      const dx = (e.clientX - this.downPos.sx) / window.innerWidth
+      const dy = (e.clientY - this.downPos.sy) / window.innerHeight
+      this.cam.tx = clamp(this.downPos.cx - dx * this.cam.z * 1.5, -26, 26)
+      this.cam.ty = clamp(this.downPos.cy + dy * this.cam.z * 1.0, -14, 14)
+      if (Math.hypot(e.clientX - this.downPos.sx, e.clientY - this.downPos.sy) > 3) this.moved = true
+      return
+    }
     const g = this.pick(e.clientX, e.clientY)
     if (g !== this.hovered) {
       if (this.hovered) {
@@ -643,6 +652,7 @@ export class WallEngine {
   private onPointerDown = (e: PointerEvent) => {
     this.ensureAudio()
     this.downPos = { sx: e.clientX, sy: e.clientY, cx: this.cam.tx, cy: this.cam.ty }
+    this.moved = false
   }
 
   private onPointerUp = () => {
@@ -655,7 +665,7 @@ export class WallEngine {
       if (pt) this.finalizePlacement(pt.x, pt.y)
       return
     }
-    if (this.downPos) return
+    if (this.moved) return
     const g = this.pick(e.clientX, e.clientY)
     if (g && g.userData.id) this.onSelect?.(g.userData.id as string)
   }
