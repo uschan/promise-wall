@@ -7,6 +7,7 @@ export type PaperStyle = {
   torn: boolean
   lines: "none" | "ruled" | "grid"
   grain: number
+  spiral?: boolean
 }
 
 export const PAPERS: Record<PaperKind, PaperStyle> = {
@@ -25,6 +26,7 @@ export const PAPERS: Record<PaperKind, PaperStyle> = {
     torn: false,
     lines: "ruled",
     grain: 0.06,
+    spiral: true,
   },
   graph: {
     label: "Graph",
