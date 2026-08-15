@@ -10,7 +10,6 @@ import {
   removeReaction,
   toggleSave,
   addReflection,
-  addReport,
   upsertPromise,
   deletePromise,
 } from "../lib/api"
@@ -89,18 +88,6 @@ export function PromisePanel() {
       await upsertPromise({ ...promise, status }, uid)
       await invalidate()
       showToast(t(STATUS_LABEL[status]))
-    } catch {
-      /* noop */
-    }
-  }
-
-  const onReport = async () => {
-    if (!promise) return
-    const uid = requireAuth()
-    if (!uid) return
-    try {
-      await addReport(promise.id, uid, profile?.name || "Anonymous", promise.text)
-      showToast(t("toast.reported"))
     } catch {
       /* noop */
     }
@@ -255,13 +242,6 @@ export function PromisePanel() {
                 <span>{t("panel.edit")}</span>
               </button>
             )}
-            <button aria-label="Report" onClick={() => void onReport()}>
-              <svg viewBox="0 0 24 24">
-                <path d="M6 21V4" />
-                <path d="M6 4h12l-2.5 4L18 12H6" />
-              </svg>
-              <span>{t("panel.report")}</span>
-            </button>
             {canDelete && (
               <button id="pDelete" aria-label="Delete" onClick={() => void onDelete()}>
                 <svg viewBox="0 0 24 24">

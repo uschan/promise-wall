@@ -5,7 +5,6 @@ import type {
   Profile,
   ReactionType,
   Reflection,
-  Report,
   Settings,
 } from "./types"
 
@@ -266,19 +265,6 @@ export async function addReflection(
   if (error) throw error
 }
 
-export async function addReport(
-  promiseId: string,
-  userId: string,
-  author: string,
-  text: string,
-): Promise<void> {
-  const client = requireClient()
-  const { error } = await client
-    .from("reports")
-    .insert({ promise_id: promiseId, user_id: userId, author, text })
-  if (error) throw error
-}
-
 /** Realtime subscription for cross-device sync. Returns an unsubscribe fn. */
 export function subscribePromises(onChange: () => void): () => void {
   if (!supabase) return () => {}
@@ -307,22 +293,6 @@ export function subscribeSettings(onChange: () => void): () => void {
 }
 
 // ---------- moderation (admin) ----------
-export async function fetchReports(): Promise<Report[]> {
-  const client = requireClient()
-  const { data, error } = await client
-    .from("reports")
-    .select("*")
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return (data as Report[]) ?? []
-}
-
-export async function deleteReport(id: string): Promise<void> {
-  const client = requireClient()
-  const { error } = await client.from("reports").delete().eq("id", id)
-  if (error) throw error
-}
-
 export async function fetchAllProfiles(): Promise<Profile[]> {
   const client = requireClient()
   const { data, error } = await client

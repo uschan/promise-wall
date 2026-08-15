@@ -4,8 +4,6 @@ import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
 import { isSupabaseConfigured } from "../lib/supabase"
 import {
-  fetchReports,
-  deleteReport,
   fetchAllProfiles,
   setUserBanned,
   deletePromise,
@@ -14,9 +12,9 @@ import {
   resetWall,
 } from "../lib/api"
 import { DEFAULT_CATEGORIES } from "../lib/categories"
-import type { Category, Profile, Report } from "../lib/types"
+import type { Category, Profile } from "../lib/types"
 
-type Tab = "reports" | "promises" | "users" | "settings"
+type Tab = "promises" | "users" | "settings"
 
 export function ModPanel() {
   const t = useT()
@@ -27,8 +25,7 @@ export function ModPanel() {
   const setStoreCategories = useAppStore((s) => s.setCategories)
   const queryClient = useQueryClient()
 
-  const [tab, setTab] = useState<Tab>("reports")
-  const [reports, setReports] = useState<Report[]>([])
+  const [tab, setTab] = useState<Tab>("promises")
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [templates, setTemplates] = useState("")
   const [quotes, setQuotes] = useState("")
@@ -42,8 +39,7 @@ export function ModPanel() {
   const load = async () => {
     if (!isSupabaseConfigured) return
     try {
-      const [r, p, s] = await Promise.all([fetchReports(), fetchAllProfiles(), fetchSettings()])
-      setReports(r)
+      const [p, s] = await Promise.all([fetchAllProfiles(), fetchSettings()])
       setProfiles(p)
       setTemplates((s.templates ?? []).join("\n"))
       setQuotes((s.quotes ?? []).join("\n"))
@@ -56,7 +52,7 @@ export function ModPanel() {
 
   useEffect(() => {
     if (open) {
-      setTab("reports")
+      setTab("promises")
       void load()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,24 +64,7 @@ export function ModPanel() {
     if (!window.confirm(t("mod.remove") + "?")) return
     await deletePromise(id)
     await invalidate()
-    void load()
     showToast(t("mod.promises.removed"))
-  }
-
-  const dismissReport = async (id: string) => {
-    await deleteReport(id)
-    void load()
-  }
-
-  const banAuthor = async (report: Report) => {
-    const owner = promises.find((x) => x.id === report.promise_id)?.user_id
-    if (!owner) {
-      showToast(t("mod.noOwner"))
-      return
-    }
-    await setUserBanned(owner, true)
-    showToast(t("mod.bannedToast"))
-    void load()
   }
 
   const toggleBan = async (u: Profile) => {
@@ -118,7 +97,13 @@ export function ModPanel() {
   const removeCat = (i: number) => setCategories(categories.filter((_, idx) => idx !== i))
 
   return (
-    <div id="modWrap" className={open ? "open" : ""} role="dialog" aria-modal="true" onClick={() => setModOpen(false)}>
+    <div
+      id="modWrap"
+      className={open ? "open" : ""}
+      role="dialog"
+      aria-modal="true"
+      onClick={() => setModOpen(false)}
+    >
       <div id="modBox" onClick={(e) => e.stopPropagation()}>
         <div className="av-head">
           <h2>{t("mod.title")}</h2>
@@ -127,9 +112,6 @@ export function ModPanel() {
           </button>
         </div>
         <div id="modTabs">
-          <button className={`mod-tab ${tab === "reports" ? "on" : ""}`} onClick={() => setTab("reports")}>
-            {t("mod.tab.reports")}
-          </button>
           <button className={`mod-tab ${tab === "promises" ? "on" : ""}`} onClick={() => setTab("promises")}>
             {t("mod.tab.promises")}
           </button>
@@ -141,7 +123,7 @@ export function ModPanel() {
           </button>
         </div>
 
-        {tab === "reports" && (
+        {tab === "promises" && (
           <>
             <div id="modStats">
               <span className="mstat">
@@ -153,60 +135,27 @@ export function ModPanel() {
               <span className="mstat">
                 <b>{todayCount}</b> {t("mod.stat.today")}
               </span>
-              <span className="mstat">
-                <b>{reports.length}</b> {t("mod.stat.reports")}
-              </span>
             </div>
-            <div id="modList">
-            {reports.length === 0 ? (
-              <div className="mod-empty">{t("mod.empty")}</div>
-            ) : (
-              reports.map((r) => (
-                <div key={r.id} className="mod-row">
-                  <div className="mod-main">
-                    <div className="mod-text">{r.text}</div>
-                    <div className="mod-meta">
-                      {r.author} · {new Date(r.created_at).toLocaleString()}
+            <div id="promisesView">
+              {promises.length === 0 ? (
+                <div className="mod-empty">{t("mod.promises.empty")}</div>
+              ) : (
+                promises.map((p) => (
+                  <div key={p.id} className="mod-row">
+                    <div className="mod-main">
+                      <div className="mod-text">{p.text}</div>
+                      <div className="mod-meta">{p.author}</div>
+                    </div>
+                    <div className="mod-actions">
+                      <button className="mod-btn remove" onClick={() => void removePromise(p.id)}>
+                        {t("mod.remove")}
+                      </button>
                     </div>
                   </div>
-                  <div className="mod-actions">
-                    <button className="mod-btn remove" onClick={() => void removePromise(r.promise_id)}>
-                      {t("mod.remove")}
-                    </button>
-                    <button className="mod-btn ban" onClick={() => void banAuthor(r)}>
-                      {t("mod.ban")}
-                    </button>
-                    <button className="mod-btn" onClick={() => void dismissReport(r.id)}>
-                      {t("mod.dismiss")}
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
             </div>
           </>
-        )}
-
-        {tab === "promises" && (
-          <div id="promisesView">
-            {promises.length === 0 ? (
-              <div className="mod-empty">{t("mod.promises.empty")}</div>
-            ) : (
-              promises.map((p) => (
-                <div key={p.id} className="mod-row">
-                  <div className="mod-main">
-                    <div className="mod-text">{p.text}</div>
-                    <div className="mod-meta">{p.author}</div>
-                  </div>
-                  <div className="mod-actions">
-                    <button className="mod-btn remove" onClick={() => void removePromise(p.id)}>
-                      {t("mod.remove")}
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         )}
 
         {tab === "users" && (
