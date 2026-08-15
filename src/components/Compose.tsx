@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
@@ -9,12 +9,50 @@ import { isSupabaseConfigured } from "../lib/supabase"
 import { upsertPromise, uploadPhoto } from "../lib/api"
 import type { PaperKind, PromiseItem } from "../lib/types"
 
-const DOODLES = [
-  { key: "none", sym: "—" },
-  { key: "heart", sym: "♥" },
-  { key: "star", sym: "★" },
-  { key: "sprig", sym: "🌿" },
-  { key: "arrow", sym: "→" },
+const DOODLES: { key: string; icon: ReactNode }[] = [
+  {
+    key: "none",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" />
+        <path d="M6 6l12 12" />
+      </svg>
+    ),
+  },
+  {
+    key: "heart",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />
+      </svg>
+    ),
+  },
+  {
+    key: "star",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <path d="M12 3l2.4 5.4 5.6.6-4.2 3.9 1.2 5.6L12 15.3 7 18.5l1.2-5.6L4 9l5.6-.6z" />
+      </svg>
+    ),
+  },
+  {
+    key: "sprig",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <path d="M12 21V7" />
+        <path d="M12 7c0-2.5 2-4 5.5-4 0 2.5-2 4-5.5 4z" />
+      </svg>
+    ),
+  },
+  {
+    key: "arrow",
+    icon: (
+      <svg viewBox="0 0 24 24">
+        <path d="M5 19c5-1 9-5 10.5-11" />
+        <path d="M9 7.5l6.5 1L14.5 15" />
+      </svg>
+    ),
+  },
 ]
 
 export function Compose() {
@@ -35,7 +73,6 @@ export function Compose() {
   const [text, setText] = useState("")
   const [category, setCategory] = useState("Self-Growth")
   const [paper, setPaper] = useState<PaperKind>("classic")
-  const [tags, setTags] = useState("")
   const [doodle, setDoodle] = useState("none")
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState("")
@@ -50,7 +87,6 @@ export function Compose() {
     setText(editing?.text ?? "")
     setCategory(editing?.category ?? "Self-Growth")
     setPaper(editing?.paper ?? "classic")
-    setTags((editing?.tags ?? []).join(" "))
     setDoodle(editing?.doodle ?? "none")
     setPhoto(null)
     setPhotoPreview(editing?.imageData ?? "")
@@ -99,7 +135,6 @@ export function Compose() {
       author: base?.author ?? profile?.name ?? "You",
       category,
       paper,
-      tags: tags.split(/[\s,]+/).filter(Boolean),
       doodle,
       status: base?.status ?? "active",
       createdAt: base?.createdAt ?? Date.now(),
@@ -166,40 +201,19 @@ export function Compose() {
                 className={`paper-swatch ${key === paper ? "on" : ""}`}
                 style={{ background: style.base }}
                 onClick={() => setPaper(key)}
-                aria-label={style.label}
                 title={style.label}
-              >
-                <span>{style.label}</span>
-              </button>
+              />
             ),
           )}
         </div>
-        <label>
-          <span>{t("compose.tags")}</span>{" "}
-          <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: "none" }}>
-            {t("compose.tags.opt")}
-          </span>
-        </label>
-        <input
-          id="tagInput"
-          type="text"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          placeholder={t("compose.ph.tags")}
-        />
-        <label>
-          <span>{t("compose.photo")}</span>{" "}
-          <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: "none" }}>
-            {t("compose.tags.opt")}
-          </span>
-        </label>
-        <label id="photoDrop">
+        <label>{t("compose.photo")}</label>
+        <label id="photoDrop" htmlFor="photoInput">
           <svg viewBox="0 0 24 24">
             <path d="M12 5v14M5 12h14" />
           </svg>
           <span>{t("compose.attach")}</span>
         </label>
-        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+        <input id="photoInput" ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
         {photoPreview && (
           <div id="photoPreviewWrap">
             <img id="photoPreview" src={photoPreview} alt="Attached photo preview" />
@@ -208,20 +222,16 @@ export function Compose() {
             </button>
           </div>
         )}
-        <label>
-          <span>{t("compose.decoration")}</span>{" "}
-          <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: "none" }}>
-            {t("compose.tags.opt")}
-          </span>
-        </label>
+        <label>{t("compose.decoration")}</label>
         <div className="doodles">
           {DOODLES.map((d) => (
             <button
               key={d.key}
               className={`doodle-btn ${doodle === d.key ? "on" : ""}`}
               onClick={() => setDoodle(d.key)}
+              title={d.key}
             >
-              {d.sym}
+              {d.icon}
             </button>
           ))}
         </div>

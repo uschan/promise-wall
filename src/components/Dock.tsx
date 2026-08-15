@@ -1,5 +1,6 @@
 import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
+import { PAPERS } from "../lib/papers"
 
 function ago(ts?: number): string {
   if (!ts) return ""
@@ -31,7 +32,12 @@ export function Dock() {
         </div>
         <div id="recentRow">
           {recents.map((p) => (
-            <button key={p.id} className="mini" onClick={() => select(p.id)}>
+            <button
+              key={p.id}
+              className="mini"
+              style={{ background: PAPERS[p.paper ?? "classic"].base }}
+              onClick={() => select(p.id)}
+            >
               {p.text.length > 46 ? p.text.slice(0, 44) + "…" : p.text}
               <span className="mfoot">
                 <span className="mava"></span>

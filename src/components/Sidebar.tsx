@@ -3,7 +3,7 @@ import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
 import { categoryLabel } from "../lib/categories"
 import { useCategories } from "../hooks/useCategories"
-import { signOut as apiSignOut } from "../lib/api"
+import { signOut as apiSignOut, upsertProfile } from "../lib/api"
 
 const DEFAULT_QUOTES = [
   "Small promises, lasting change.",
@@ -15,6 +15,7 @@ export function Sidebar() {
   const lang = useAppStore((s) => s.lang)
   const userId = useAppStore((s) => s.userId)
   const profile = useAppStore((s) => s.profile)
+  const setAuth = useAppStore((s) => s.setAuth)
   const setAuthOpen = useAppStore((s) => s.setAuthOpen)
   const setModOpen = useAppStore((s) => s.setModOpen)
   const activeCategory = useAppStore((s) => s.activeCategory)
@@ -33,6 +34,14 @@ export function Sidebar() {
 
   const name = profile?.name || (userId ? t("signedInAs") : t("notSignedIn"))
   const allActive = view === "all" && activeCategory === null
+
+  const editName = async () => {
+    if (!userId) return
+    const newName = window.prompt("Display name", profile?.name ?? "")
+    if (!newName || !newName.trim()) return
+    await upsertProfile(userId, newName.trim())
+    setAuth(userId, { id: userId, ...(profile ?? {}), name: newName.trim() })
+  }
 
   return (
     <aside id="sidebar">
@@ -55,13 +64,21 @@ export function Sidebar() {
           </span>
         </span>
         {userId && (
-          <button className="edit" aria-label="Sign out" onClick={() => void apiSignOut()}>
-            <svg viewBox="0 0 24 24">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <path d="M16 17l5-5-5-5" />
-              <path d="M21 12H9" />
-            </svg>
-          </button>
+          <>
+            <button className="edit" aria-label="Edit name" onClick={() => void editName()}>
+              <svg viewBox="0 0 24 24">
+                <path d="M14.5 4.5l5 5L8 21H3v-5z" />
+                <path d="M12.5 6.5l5 5" />
+              </svg>
+            </button>
+            <button className="edit" aria-label="Sign out" onClick={() => void apiSignOut()}>
+              <svg viewBox="0 0 24 24">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+            </button>
+          </>
         )}
       </div>
       <hr />

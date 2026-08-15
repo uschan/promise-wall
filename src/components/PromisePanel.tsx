@@ -157,11 +157,14 @@ export function PromisePanel() {
             </span>
           </div>
           <div id="pCat">{cat.toUpperCase()}</div>
-          <div className="p-head">
-            <h2 id="pTitle">{promise.text}</h2>
+          <div className="p-promise-box">
+            <div className="p-head">
+              <h2 id="pTitle">{promise.text}</h2>
+            </div>
+            {promise.body && <p id="pBody">{promise.body}</p>}
+            <div className="p-sep" />
+            <p id="pAuthor">{promise.author}</p>
           </div>
-          {promise.body && <p id="pBody">{promise.body}</p>}
-          <p id="pAuthor">— {promise.author}</p>
           {promise.imageData && <img id="pImage" src={promise.imageData} alt="" />}
 
           <div className="p-reactions">

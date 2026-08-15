@@ -49,3 +49,31 @@
   gap: 8px;
   justify-content: flex-end;
 }
+
+/* paper swatches: horizontal, 4 per row, name on hover only */
+.papers {
+  gap: 8px;
+}
+
+.paper-swatch {
+  width: calc(25% - 6px);
+  height: 40px;
+  border-radius: 10px;
+}
+
+/* detail panel: promise + author in one dashed box */
+.p-promise-box {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.p-sep {
+  border-top: 1px dashed var(--line);
+  margin: 10px 0;
+}
+
+#pAuthor {
+  color: var(--ink-faint);
+  font-style: normal;
+}
