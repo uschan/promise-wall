@@ -34,6 +34,17 @@ type CardLayout = {
   type: "note" | "photo"
 }
 
+function hash(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+function seeded(seed: number, a: number, b: number): number {
+  const x = Math.sin(seed) * 10000
+  return a + (x - Math.floor(x)) * (b - a)
+}
+
 function layoutCard(p: PromiseItem, i: number): CardLayout {
   const cols = 5
   const col = i % cols
@@ -42,17 +53,18 @@ function layoutCard(p: PromiseItem, i: number): CardLayout {
   const attaches: Attach[] = ["pin", "pin", "pin", "tape", "clip"]
   const doodles = ["none", "heart", "star", "sprig", "arrow"]
   const golds = [0x9a7b3f, 0x8a6a33, 0xa8884a, 0x7d5f3a]
+  const seed = hash(p.id)
   return {
-    x: (col - (cols - 1) / 2) * 9.2 + rnd(-1.2, 1.2),
-    y: 7.5 - row * 5.4 + rnd(-0.8, 0.8),
-    w: rnd(3.9, 5.2),
-    rot: rnd(-3, 3),
+    x: p.x ?? (col - (cols - 1) / 2) * 9.2 + seeded(seed + 1, -1.2, 1.2),
+    y: p.y ?? 7.5 - row * 5.4 + seeded(seed + 2, -0.8, 0.8),
+    w: seeded(seed + 3, 3.9, 5.2),
+    rot: seeded(seed + 4, -3, 3),
     baseZ: 0.24,
-    paper: p.paper ?? papers[i % papers.length]!,
-    attach: attaches[i % attaches.length]!,
-    pinColor: golds[i % golds.length]!,
-    font: Math.random() < 0.3 ? "serif" : "hand",
-    doodle: p.doodle ?? doodles[i % doodles.length]!,
+    paper: p.paper ?? papers[(seed + 5) % papers.length]!,
+    attach: attaches[(seed + 6) % attaches.length]!,
+    pinColor: golds[(seed + 7) % golds.length]!,
+    font: seeded(seed + 8, 0, 1) < 0.3 ? "serif" : "hand",
+    doodle: p.doodle ?? doodles[(seed + 9) % doodles.length]!,
     type: p.imageData ? "photo" : "note",
   }
 }
@@ -78,6 +90,7 @@ function bendGeometry(geo: THREE.PlaneGeometry, w: number, h: number) {
 
 export class WallEngine {
   onSelect: ((id: string) => void) | null = null
+  onPlace: ((x: number, y: number) => void) | null = null
 
   private renderer: THREE.WebGLRenderer
   private scene = new THREE.Scene()
@@ -87,6 +100,8 @@ export class WallEngine {
   private pickables: THREE.Mesh[] = []
   private raycaster = new THREE.Raycaster()
   private pointer = new THREE.Vector2()
+  private wallPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
+  private placing = false
   private raf = 0
   private disposed = false
   private resizeHandler: () => void
@@ -352,7 +367,27 @@ export class WallEngine {
     return hit ? (hit.object.userData.group as THREE.Group) : null
   }
 
+  setPlacing(v: boolean) {
+    this.placing = v
+    this.renderer.domElement.style.cursor = v ? "crosshair" : ""
+  }
+
+  private wallPoint(cx: number, cy: number): { x: number; y: number } | null {
+    this.setNDC(cx, cy)
+    this.raycaster.setFromCamera(this.pointer, this.camera)
+    const v = new THREE.Vector3()
+    if (!this.raycaster.ray.intersectPlane(this.wallPlane, v)) return null
+    return {
+      x: clamp(v.x, -WALL_W / 2 + 4, WALL_W / 2 - 4),
+      y: clamp(v.y, -WALL_H / 2 + 4, WALL_H / 2 - 4),
+    }
+  }
+
   private onPointerMove = (e: PointerEvent) => {
+    if (this.placing) {
+      this.renderer.domElement.style.cursor = "crosshair"
+      return
+    }
     const g = this.pick(e.clientX, e.clientY)
     if (g !== this.hovered) {
       if (this.hovered) {
@@ -377,6 +412,14 @@ export class WallEngine {
   }
 
   private onClick = (e: MouseEvent) => {
+    if (this.placing) {
+      const pt = this.wallPoint(e.clientX, e.clientY)
+      if (pt) {
+        this.placing = false
+        this.onPlace?.(pt.x, pt.y)
+      }
+      return
+    }
     if (this.downPos) return
     const g = this.pick(e.clientX, e.clientY)
     if (g && g.userData.id) this.onSelect?.(g.userData.id as string)

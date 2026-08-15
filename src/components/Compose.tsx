@@ -61,8 +61,8 @@ export function Compose() {
   const open = useAppStore((s) => s.composeOpen)
   const editingId = useAppStore((s) => s.editingId)
   const closeCompose = useAppStore((s) => s.closeCompose)
-  const addPromise = useAppStore((s) => s.addPromise)
   const updatePromise = useAppStore((s) => s.updatePromise)
+  const setPlacing = useAppStore((s) => s.setPlacing)
   const select = useAppStore((s) => s.select)
   const userId = useAppStore((s) => s.userId)
   const profile = useAppStore((s) => s.profile)
@@ -84,13 +84,15 @@ export function Compose() {
     const editing = editingId
       ? useAppStore.getState().promises.find((p) => p.id === editingId)
       : null
-    setText(editing?.text ?? "")
+    const draft = useAppStore.getState().draftText
+    setText(editing?.text ?? draft ?? "")
     setCategory(editing?.category ?? "Self-Growth")
     setPaper(editing?.paper ?? "classic")
     setDoodle(editing?.doodle ?? "none")
     setPhoto(null)
     setPhotoPreview(editing?.imageData ?? "")
     setError("")
+    if (draft) useAppStore.getState().setDraftText(null)
     if (fileRef.current) fileRef.current.value = ""
   }, [open, editingId])
 
@@ -143,13 +145,15 @@ export function Compose() {
 
     setSaving(true)
     try {
-      if (isSupabaseConfigured && userId) {
-        await upsertPromise(promise, userId)
-        await queryClient.invalidateQueries({ queryKey: ["promises"] })
-      } else if (base) {
-        updatePromise(promise)
+      if (base) {
+        if (isSupabaseConfigured && userId) {
+          await upsertPromise(promise, userId)
+          await queryClient.invalidateQueries({ queryKey: ["promises"] })
+        } else {
+          updatePromise(promise)
+        }
       } else {
-        addPromise(promise)
+        setPlacing(promise)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -158,7 +162,7 @@ export function Compose() {
     }
     setSaving(false)
     closeCompose()
-    select(promise.id)
+    if (base) select(promise.id)
   }
 
   return (

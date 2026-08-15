@@ -18,6 +18,7 @@ export function Dock() {
   const promises = useAppStore((s) => s.promises)
   const select = useAppStore((s) => s.select)
   const openCreate = useAppStore((s) => s.openCreate)
+  const setTemplateOpen = useAppStore((s) => s.setTemplateOpen)
   const setAllViewOpen = useAppStore((s) => s.setAllViewOpen)
   const recents = [...promises].slice(0, 4)
 
@@ -63,7 +64,7 @@ export function Dock() {
             </svg>
             <span>{t("start.write")}</span>
           </button>
-          <button className="start-card" onClick={openCreate}>
+          <button className="start-card" onClick={() => setTemplateOpen(true)}>
             <svg viewBox="0 0 24 24">
               <path d="M14.5 4.5l5 5L8 21H3v-5z" />
               <path d="M12.5 6.5l5 5" />

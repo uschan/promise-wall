@@ -18,6 +18,9 @@ type AppState = {
   modOpen: boolean
   allViewOpen: boolean
   shareId: string | null
+  templateOpen: boolean
+  draftText: string | null
+  placing: PromiseItem | null
   categories: Category[] | null
   templates: string[] | null
   quotes: string[] | null
@@ -36,6 +39,9 @@ type AppState = {
   setModOpen: (open: boolean) => void
   setAllViewOpen: (open: boolean) => void
   setShareId: (id: string | null) => void
+  setTemplateOpen: (open: boolean) => void
+  setDraftText: (text: string | null) => void
+  setPlacing: (p: PromiseItem | null) => void
   setCategories: (categories: Category[] | null) => void
   setTemplates: (templates: string[] | null) => void
   setQuotes: (quotes: string[] | null) => void
@@ -61,6 +67,9 @@ export const useAppStore = create<AppState>((set) => ({
   modOpen: false,
   allViewOpen: false,
   shareId: null,
+  templateOpen: false,
+  draftText: null,
+  placing: null,
   categories: null,
   templates: null,
   quotes: null,
@@ -84,6 +93,9 @@ export const useAppStore = create<AppState>((set) => ({
   setModOpen: (modOpen) => set({ modOpen }),
   setAllViewOpen: (allViewOpen) => set({ allViewOpen }),
   setShareId: (shareId) => set({ shareId }),
+  setTemplateOpen: (templateOpen) => set({ templateOpen }),
+  setDraftText: (draftText) => set({ draftText }),
+  setPlacing: (placing) => set({ placing }),
   setCategories: (categories) => set({ categories }),
   setTemplates: (templates) => set({ templates }),
   setQuotes: (quotes) => set({ quotes }),

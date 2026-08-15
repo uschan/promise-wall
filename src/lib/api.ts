@@ -27,6 +27,8 @@ const PERSISTED_KEYS = [
   "tags",
   "doodle",
   "imageData",
+  "x",
+  "y",
   "status",
   "createdAt",
 ] as const

@@ -116,4 +116,11 @@ export const zh: Record<I18nKey, string> = {
   "mod.set.resetWall": "重置墙（清空用户承诺）",
   "mod.resetConfirm": "确定要清空所有用户承诺吗？此操作不可恢复。",
   "mod.resetDone": "已重置。",
+  "mod.stat.promises": "承诺",
+  "mod.stat.users": "用户",
+  "mod.stat.today": "今日新增",
+  "mod.stat.reports": "举报",
+  "template.title": "选择一个模板",
+  "template.hint": "选一条作为起点，之后可以随意修改。",
+  "place.hint": "点击墙上任意位置钉下承诺 · Esc 取消",
 }

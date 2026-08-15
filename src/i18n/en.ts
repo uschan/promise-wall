@@ -114,6 +114,13 @@ export const en = {
   "mod.set.resetWall": "Reset wall (clear user promises)",
   "mod.resetConfirm": "Clear all user promises? This cannot be undone.",
   "mod.resetDone": "Wall reset.",
+  "mod.stat.promises": "promises",
+  "mod.stat.users": "users",
+  "mod.stat.today": "today",
+  "mod.stat.reports": "reports",
+  "template.title": "Choose a template",
+  "template.hint": "Pick one to start from — you can edit it.",
+  "place.hint": "Click anywhere on the wall to pin · Esc to cancel",
 } as const
 
 export type I18nKey = keyof typeof en

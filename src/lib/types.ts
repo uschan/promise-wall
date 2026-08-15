@@ -42,6 +42,8 @@ export type PromiseItem = {
   tags?: string[]
   doodle?: string
   imageData?: string
+  x?: number
+  y?: number
   status?: PromiseStatus
   createdAt?: number
   /** Runtime-only fields (not persisted in `data`). */

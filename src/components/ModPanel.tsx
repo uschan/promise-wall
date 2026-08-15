@@ -35,6 +35,10 @@ export function ModPanel() {
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES)
   const [rateLimit, setRateLimit] = useState(1)
 
+  const todayCount = promises.filter(
+    (p) => p.createdAt && Date.now() - p.createdAt < 86400000,
+  ).length
+
   const load = async () => {
     if (!isSupabaseConfigured) return
     try {
@@ -138,7 +142,22 @@ export function ModPanel() {
         </div>
 
         {tab === "reports" && (
-          <div id="modList">
+          <>
+            <div id="modStats">
+              <span className="mstat">
+                <b>{promises.length}</b> {t("mod.stat.promises")}
+              </span>
+              <span className="mstat">
+                <b>{profiles.length}</b> {t("mod.stat.users")}
+              </span>
+              <span className="mstat">
+                <b>{todayCount}</b> {t("mod.stat.today")}
+              </span>
+              <span className="mstat">
+                <b>{reports.length}</b> {t("mod.stat.reports")}
+              </span>
+            </div>
+            <div id="modList">
             {reports.length === 0 ? (
               <div className="mod-empty">{t("mod.empty")}</div>
             ) : (
@@ -164,7 +183,8 @@ export function ModPanel() {
                 </div>
               ))
             )}
-          </div>
+            </div>
+          </>
         )}
 
         {tab === "promises" && (
