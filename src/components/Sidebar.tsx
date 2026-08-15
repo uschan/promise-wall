@@ -1,6 +1,7 @@
 import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
-import { DEFAULT_CATEGORIES, categoryLabel } from "../lib/categories"
+import { categoryLabel } from "../lib/categories"
+import { useCategories } from "../hooks/useCategories"
 import { signOut as apiSignOut } from "../lib/api"
 
 export function Sidebar() {
@@ -15,6 +16,7 @@ export function Sidebar() {
   const setActiveCategory = useAppStore((s) => s.setActiveCategory)
   const searchQuery = useAppStore((s) => s.searchQuery)
   const setSearchQuery = useAppStore((s) => s.setSearchQuery)
+  const categories = useCategories()
 
   return (
     <aside className="sidebar">
@@ -37,13 +39,13 @@ export function Sidebar() {
         >
           <span className="cat-ico">✦</span> {t("nav.all")}
         </button>
-        {DEFAULT_CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <button
             key={c.key}
             className={`nav-item ${activeCategory === c.key ? "active" : ""}`}
             onClick={() => setActiveCategory(c.key)}
           >
-            <span className="cat-ico">{c.icon}</span> {categoryLabel(c.key, lang)}
+            <span className="cat-ico">{c.icon}</span> {categoryLabel(c.key, lang, categories)}
           </button>
         ))}
         {profile?.is_admin && (

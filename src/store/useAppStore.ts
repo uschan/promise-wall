@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { Lang, Profile, PromiseItem } from "../lib/types"
+import type { Category, Lang, Profile, PromiseItem } from "../lib/types"
 
 type Toast = { msg: string; key: number }
 
@@ -16,6 +16,7 @@ type AppState = {
   authOpen: boolean
   modOpen: boolean
   allViewOpen: boolean
+  categories: Category[] | null
   toast: Toast | null
   setLang: (lang: Lang) => void
   setPromises: (promises: PromiseItem[]) => void
@@ -30,6 +31,7 @@ type AppState = {
   setAuthOpen: (open: boolean) => void
   setModOpen: (open: boolean) => void
   setAllViewOpen: (open: boolean) => void
+  setCategories: (categories: Category[] | null) => void
   showToast: (msg: string) => void
   clearToast: () => void
   setActiveCategory: (cat: string | null) => void
@@ -49,6 +51,7 @@ export const useAppStore = create<AppState>((set) => ({
   authOpen: false,
   modOpen: false,
   allViewOpen: false,
+  categories: null,
   toast: null,
   setLang: (lang) => set({ lang }),
   setPromises: (promises) => set({ promises }),
@@ -68,6 +71,7 @@ export const useAppStore = create<AppState>((set) => ({
   setAuthOpen: (authOpen) => set({ authOpen }),
   setModOpen: (modOpen) => set({ modOpen }),
   setAllViewOpen: (allViewOpen) => set({ allViewOpen }),
+  setCategories: (categories) => set({ categories }),
   showToast: (msg) => set((s) => ({ toast: { msg, key: (s.toast?.key ?? 0) + 1 } })),
   clearToast: () => set({ toast: null }),
   setActiveCategory: (activeCategory) => set({ activeCategory }),

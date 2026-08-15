@@ -11,8 +11,12 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { key: "Creativity", en: "Creativity", zh: "创造力", icon: "🎨" },
 ]
 
-export function categoryLabel(key: string, lang: Lang): string {
-  const found = DEFAULT_CATEGORIES.find((c) => c.key === key)
+export function categoryLabel(
+  key: string,
+  lang: Lang,
+  list: Category[] = DEFAULT_CATEGORIES,
+): string {
+  const found = list.find((c) => c.key === key)
   if (!found) return key
   return lang === "zh" ? found.zh : found.en
 }

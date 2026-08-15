@@ -4,6 +4,7 @@ import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
 import { PAPERS } from "../lib/papers"
 import { categoryLabel } from "../lib/categories"
+import { useCategories } from "../hooks/useCategories"
 import { isSupabaseConfigured } from "../lib/supabase"
 import {
   addReaction,
@@ -38,13 +39,14 @@ export function PromisePanel() {
   const promise = useAppStore((s) => s.promises.find((p) => p.id === s.selectedId))
 
   const [reflText, setReflText] = useState("")
+  const categories = useCategories()
 
   if (!selectedId || !promise) return null
 
   const isMine = !!userId && promise.user_id === userId
   const canDelete = !isSupabaseConfigured || isMine
   const paper = PAPERS[promise.paper ?? "classic"]
-  const cat = promise.category ? categoryLabel(promise.category, lang) : ""
+  const cat = promise.category ? categoryLabel(promise.category, lang, categories) : ""
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["promises"] })
 
   const requireAuth = (): string | null => {

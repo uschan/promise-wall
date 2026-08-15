@@ -9,12 +9,14 @@ import { AllView } from "./components/AllView"
 import { ModPanel } from "./components/ModPanel"
 import { usePromises } from "./hooks/usePromises"
 import { useAuthInit } from "./hooks/useAuthInit"
+import { useSettings } from "./hooks/useSettings"
 import { useAppStore } from "./store/useAppStore"
 
 export default function App() {
   const openCreate = useAppStore((s) => s.openCreate)
   usePromises()
   useAuthInit()
+  useSettings()
 
   return (
     <div className="app">

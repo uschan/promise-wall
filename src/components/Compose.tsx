@@ -3,7 +3,8 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
 import { PAPERS } from "../lib/papers"
-import { DEFAULT_CATEGORIES, categoryLabel } from "../lib/categories"
+import { categoryLabel } from "../lib/categories"
+import { useCategories } from "../hooks/useCategories"
 import { isSupabaseConfigured } from "../lib/supabase"
 import { upsertPromise, uploadPhoto } from "../lib/api"
 import type { PaperKind, PromiseItem } from "../lib/types"
@@ -21,6 +22,7 @@ export function Compose() {
   const profile = useAppStore((s) => s.profile)
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement | null>(null)
+  const categories = useCategories()
 
   const [text, setText] = useState("")
   const [category, setCategory] = useState("Self-Growth")
@@ -127,13 +129,13 @@ export function Compose() {
         />
         <div className="field-label">{t("compose.category")}</div>
         <div className="chips">
-          {DEFAULT_CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <button
               key={c.key}
               className={`chip ${c.key === category ? "on" : ""}`}
               onClick={() => setCategory(c.key)}
             >
-              {c.icon} {categoryLabel(c.key, lang)}
+              {c.icon} {categoryLabel(c.key, lang, categories)}
             </button>
           ))}
         </div>

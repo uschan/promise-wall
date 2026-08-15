@@ -291,6 +291,18 @@ export function subscribePromises(onChange: () => void): () => void {
   }
 }
 
+/** Realtime subscription for the admin-managed settings table. */
+export function subscribeSettings(onChange: () => void): () => void {
+  if (!supabase) return () => {}
+  const channel = supabase
+    .channel("settings-realtime")
+    .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => onChange())
+    .subscribe()
+  return () => {
+    supabase?.removeChannel(channel)
+  }
+}
+
 // ---------- moderation (admin) ----------
 export async function fetchReports(): Promise<Report[]> {
   const client = requireClient()

@@ -24,6 +24,7 @@ export function ModPanel() {
   const setModOpen = useAppStore((s) => s.setModOpen)
   const showToast = useAppStore((s) => s.showToast)
   const promises = useAppStore((s) => s.promises)
+  const setStoreCategories = useAppStore((s) => s.setCategories)
   const queryClient = useQueryClient()
 
   const [tab, setTab] = useState<Tab>("reports")
@@ -98,6 +99,7 @@ export function ModPanel() {
       categories,
       rateLimit: Math.max(1, rateLimit),
     })
+    setStoreCategories(categories)
     showToast(t("mod.set.saved"))
   }
 
