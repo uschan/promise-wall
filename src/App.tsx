@@ -41,6 +41,15 @@ export default function App() {
       <button id="addBtn" onClick={openCreate} aria-label="Add a promise">
         +
       </button>
+      <div id="addHint">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 4c-5 1-9 5-10.5 11" />
+          <path d="M8 10.5L8.4 15.3 13 14" />
+        </svg>
+        <span className="hint-key">J</span> Add your
+        <br />
+        promise anywhere.
+      </div>
       <Dock />
       <PromisePanel />
       <Compose />

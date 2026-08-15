@@ -68,7 +68,7 @@ export function WallCanvas() {
   }, [visible])
 
   useEffect(() => {
-    engineRef.current?.setPlacing(!!placing)
+    engineRef.current?.setPlacing(placing)
   }, [placing])
 
   useEffect(() => {

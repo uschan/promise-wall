@@ -103,7 +103,14 @@ export class WallEngine {
   private pointer = new THREE.Vector2()
   private ndc = new THREE.Vector2()
   private wallPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
-  private placing = false
+  private placing: { group: THREE.Group; p: PromiseItem; target: THREE.Vector3; prev: THREE.Vector3 } | null = null
+  private px = 0
+  private py = 0
+  private sparkles: { pts: THREE.Points; vel: { x: number; y: number; z: number }[]; life: number; geo: THREE.BufferGeometry }[] = []
+  private AC: AudioContext | null = null
+  private addAnchor = new THREE.Vector3(1.4, -2.9, 0.6)
+  private hintAnchor = new THREE.Vector3(2.5, -5.4, 0.6)
+  private proj = new THREE.Vector3()
   private raf = 0
   private disposed = false
   private resizeHandler: () => void
@@ -216,7 +223,6 @@ export class WallEngine {
     })
     const group = new THREE.Group()
     group.add(paper)
-    this.makeAttach(L, h, group)
     L.baseZ = this.stackZ(L.x, L.y)
     group.position.set(L.x, L.y, L.baseZ)
     group.rotation.z = (L.rot * Math.PI) / 180
@@ -236,6 +242,7 @@ export class WallEngine {
       phase: rnd(0, 6.28),
       glow: { v: 0 },
     }
+    this.makeAttach(L, h, group)
     paper.userData.group = group
     this.scene.add(group)
     this.cards.push(group)
@@ -283,6 +290,7 @@ export class WallEngine {
       shaft.position.set(head.position.x, head.position.y, 0.12)
       group.add(shaft)
       group.add(head)
+      group.userData.pinHead = head
     }
   }
 
@@ -433,9 +441,145 @@ export class WallEngine {
     return hit ? (hit.object.userData.group as THREE.Group) : null
   }
 
-  setPlacing(v: boolean) {
-    this.placing = v
-    this.renderer.domElement.style.cursor = v ? "crosshair" : ""
+  setPlacing(promise: PromiseItem | null) {
+    this.cancelPlacing()
+    if (!promise) return
+    this.buildCard(promise, this.cards.length)
+    const g = this.cards.pop()!
+    this.pickables.pop()
+    g.position.set(this.cam.x, this.cam.y, 1.6)
+    this.placing = {
+      group: g,
+      p: promise,
+      target: new THREE.Vector3(this.cam.x, this.cam.y, 0),
+      prev: new THREE.Vector3(this.cam.x, this.cam.y, 0),
+    }
+    this.renderer.domElement.style.cursor = "crosshair"
+  }
+
+  cancelPlacing() {
+    if (!this.placing) return
+    const g = this.placing.group
+    this.scene.remove(g)
+    g.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        o.geometry.dispose()
+        const m = o.material as THREE.Material | THREE.Material[]
+        if (Array.isArray(m)) m.forEach((x) => x.dispose())
+        else m.dispose()
+        if (o.customDepthMaterial) o.customDepthMaterial.dispose()
+      }
+    })
+    this.placing = null
+    this.renderer.domElement.style.cursor = ""
+  }
+
+  finalizePlacement(x: number, y: number) {
+    if (!this.placing) return
+    const g = this.placing.group
+    const p = this.placing.p
+    this.placing = null
+    this.renderer.domElement.style.cursor = ""
+    const fx = clamp(x, -WALL_W / 2 + 4, WALL_W / 2 - 4)
+    const fy = clamp(y, -WALL_H / 2 + 4, WALL_H / 2 - 4)
+    p.x = fx
+    p.y = fy
+    const finalRot = (rnd(-3, 3) * Math.PI) / 180
+    p.rot = (finalRot * 180) / Math.PI
+    const baseZ = this.stackZ(fx, fy)
+    g.userData.baseZ = baseZ
+    const pinHead = g.userData.pinHead as THREE.Mesh | undefined
+    const pinMat = pinHead ? (pinHead.material as THREE.MeshStandardMaterial) : null
+    const pinZ0 = pinHead ? pinHead.position.z : 0
+    if (pinHead && pinMat) {
+      pinHead.position.z = 2.2
+      pinMat.transparent = true
+      pinMat.opacity = 0
+    }
+    g.userData.baseRot = finalRot
+    const commit = () => {
+      this.cards.push(g)
+      this.pickables.push(g.userData.paper)
+      this.sparkleBurst(fx, fy, baseZ + 0.6)
+      this.onPlace?.(fx, fy)
+    }
+    const tl = gsap.timeline({ onComplete: commit })
+    tl.to(g.position, { x: fx, y: fy, duration: 0.32, ease: "power2.out" }, 0)
+      .to(g.position, { z: baseZ, duration: 0.42, ease: "power3.in", onComplete: () => this.tap(150, 0.09, 0.1) }, 0)
+      .to(g.rotation, { x: 0, y: 0, z: finalRot, duration: 0.45, ease: "power2.out" }, 0)
+      .to(g.scale, { y: 0.965, duration: 0.09, ease: "power2.in" }, 0.42)
+      .to(g.scale, { y: 1, duration: 0.6, ease: "elastic.out(1,.4)" }, 0.51)
+    if (pinHead && pinMat) {
+      tl.to(pinMat, { opacity: 1, duration: 0.12 }, 0.35)
+        .to(pinHead.position, { z: pinZ0, duration: 0.3, ease: "back.in(1.6)", onComplete: () => this.tap(1900, 0.05, 0.09) }, 0.4)
+        .fromTo(pinHead.scale, { z: 0.5 }, { z: 0.75, duration: 0.4, ease: "elastic.out(1,.45)" }, 0.7)
+    }
+  }
+
+  private sparkleBurst(x: number, y: number, z: number) {
+    const n = 36
+    const geo = new THREE.BufferGeometry()
+    const pos = new Float32Array(n * 3)
+    const vel: { x: number; y: number; z: number }[] = []
+    for (let i = 0; i < n; i++) {
+      pos[i * 3] = x
+      pos[i * 3 + 1] = y
+      pos[i * 3 + 2] = z
+      const a = Math.random() * Math.PI * 2
+      const r = 0.4 + Math.random() * 0.9
+      vel.push({ x: Math.cos(a) * r, y: Math.sin(a) * r, z: 0.5 + Math.random() * 1.3 })
+    }
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3))
+    const mat = new THREE.PointsMaterial({ color: 0xffd98a, size: 0.12, transparent: true, opacity: 1, depthWrite: false })
+    const pts = new THREE.Points(geo, mat)
+    this.scene.add(pts)
+    this.sparkles.push({ pts, vel, life: 1, geo })
+  }
+
+  private updateSparkles(dt: number) {
+    for (let i = this.sparkles.length - 1; i >= 0; i--) {
+      const s = this.sparkles[i]!
+      s.life -= dt * 1.6
+      const pm = s.pts.material as THREE.PointsMaterial
+      if (s.life <= 0) {
+        this.scene.remove(s.pts)
+        pm.dispose()
+        s.geo.dispose()
+        this.sparkles.splice(i, 1)
+        continue
+      }
+      pm.opacity = s.life
+      const attr = s.geo.getAttribute("position") as THREE.BufferAttribute
+      for (let j = 0; j < s.vel.length; j++) {
+        const v = s.vel[j]!
+        attr.setXYZ(j, attr.getX(j) + v.x * dt, attr.getY(j) + v.y * dt, attr.getZ(j) + v.z * dt)
+        v.z -= dt * 2.5
+      }
+      attr.needsUpdate = true
+    }
+  }
+
+  private ensureAudio() {
+    if (!this.AC) {
+      try {
+        this.AC = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      } catch {
+        /* audio unavailable */
+      }
+    }
+  }
+
+  private tap(freq: number, dur: number, gain: number) {
+    if (!this.AC) return
+    const o = this.AC.createOscillator()
+    const g = this.AC.createGain()
+    o.frequency.value = freq
+    o.type = "triangle"
+    g.gain.setValueAtTime(gain, this.AC.currentTime)
+    g.gain.exponentialRampToValueAtTime(0.0001, this.AC.currentTime + dur)
+    o.connect(g).connect(this.AC.destination)
+    o.start()
+    o.stop(this.AC.currentTime + dur)
   }
 
   setSelected(id: string | null) {
@@ -453,11 +597,17 @@ export class WallEngine {
     }
   }
 
-  private wallPoint(cx: number, cy: number): { x: number; y: number } | null {
+  private wallPointAt(cx: number, cy: number): THREE.Vector3 | null {
     this.setNDC(cx, cy)
     this.raycaster.setFromCamera(this.pointer, this.camera)
     const v = new THREE.Vector3()
     if (!this.raycaster.ray.intersectPlane(this.wallPlane, v)) return null
+    return v
+  }
+
+  private wallPoint(cx: number, cy: number): { x: number; y: number } | null {
+    const v = this.wallPointAt(cx, cy)
+    if (!v) return null
     return {
       x: clamp(v.x, -WALL_W / 2 + 4, WALL_W / 2 - 4),
       y: clamp(v.y, -WALL_H / 2 + 4, WALL_H / 2 - 4),
@@ -467,6 +617,8 @@ export class WallEngine {
   private onPointerMove = (e: PointerEvent) => {
     this.ndc.x = (e.clientX / window.innerWidth) * 2 - 1
     this.ndc.y = -(e.clientY / window.innerHeight) * 2 + 1
+    this.px = e.clientX
+    this.py = e.clientY
     if (this.placing) {
       this.renderer.domElement.style.cursor = "crosshair"
       return
@@ -489,6 +641,7 @@ export class WallEngine {
   }
 
   private onPointerDown = (e: PointerEvent) => {
+    this.ensureAudio()
     this.downPos = { sx: e.clientX, sy: e.clientY, cx: this.cam.tx, cy: this.cam.ty }
   }
 
@@ -499,10 +652,7 @@ export class WallEngine {
   private onClick = (e: MouseEvent) => {
     if (this.placing) {
       const pt = this.wallPoint(e.clientX, e.clientY)
-      if (pt) {
-        this.placing = false
-        this.onPlace?.(pt.x, pt.y)
-      }
+      if (pt) this.finalizePlacement(pt.x, pt.y)
       return
     }
     if (this.downPos) return
@@ -567,6 +717,42 @@ export class WallEngine {
         pos.setY(i, y)
       }
       pos.needsUpdate = true
+    }
+    // placement preview physics: lag + velocity tilt + edge auto-pan
+    if (this.placing) {
+      const M = 80
+      const sp = 26 * dt * (this.cam.z / 34)
+      if (this.px < M) this.cam.tx = clamp(this.cam.tx - sp * (1 - this.px / M), -26, 26)
+      if (this.px > window.innerWidth - M) this.cam.tx = clamp(this.cam.tx + sp * (1 - (window.innerWidth - this.px) / M), -26, 26)
+      if (this.py < M) this.cam.ty = clamp(this.cam.ty + sp * (1 - this.py / M), -14, 14)
+      if (this.py > window.innerHeight - M) this.cam.ty = clamp(this.cam.ty - sp * (1 - (window.innerHeight - this.py) / M), -14, 14)
+      const rt = this.wallPointAt(this.px, this.py)
+      if (rt) this.placing.target.copy(rt)
+      const g = this.placing.group
+      const tg = this.placing.target
+      const vx = tg.x - this.placing.prev.x
+      const vy = tg.y - this.placing.prev.y
+      this.placing.prev.lerp(tg, 0.5)
+      g.position.x += (tg.x - g.position.x) * 0.14
+      g.position.y += (tg.y - g.position.y) * 0.14
+      g.position.z = 1.6 + Math.sin(t * 2) * 0.05
+      g.rotation.z += (clamp(-vx * 0.35, -0.28, 0.28) - g.rotation.z) * 0.1
+      g.rotation.x += (clamp(vy * 0.3, -0.22, 0.22) - g.rotation.x) * 0.1
+    }
+    // pin celebration sparkles
+    this.updateSparkles(dt)
+    // projected UI
+    const addBtn = document.getElementById("addBtn")
+    if (addBtn) {
+      this.proj.copy(this.addAnchor).project(this.camera)
+      addBtn.style.left = (this.proj.x * 0.5 + 0.5) * window.innerWidth + "px"
+      addBtn.style.top = (-this.proj.y * 0.5 + 0.5) * window.innerHeight + "px"
+    }
+    const addHint = document.getElementById("addHint")
+    if (addHint) {
+      this.proj.copy(this.hintAnchor).project(this.camera)
+      addHint.style.left = (this.proj.x * 0.5 + 0.5) * window.innerWidth + "px"
+      addHint.style.top = (-this.proj.y * 0.5 + 0.5) * window.innerHeight + "px"
     }
     this.renderer.render(this.scene, this.camera)
   }
