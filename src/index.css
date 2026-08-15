@@ -65,6 +65,29 @@
 #pAuthor {
   color: var(--ink-faint);
   font-style: italic;
+  text-align: right;
+  margin-bottom: 0;
+}
+
+/* promise text box: fixed width, auto height; username inside, dashed separator */
+.p-promise {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.p-promise #pTitle {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.p-sep {
+  border-top: 1px dashed var(--line);
+  margin: 10px 0;
 }
 
 #compose label .maxhint {
@@ -89,4 +112,41 @@
 
 .mod-row {
   padding: 10px 12px;
+}
+
+/* ============ design tokens & consistency ============ */
+:root {
+  --fs-label: 10.5px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 25px;
+  --pill-h: 32px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+}
+
+/* consistent pill height */
+.pill-btn,
+.chip,
+.reaction-btn,
+.status-btn,
+.mod-btn,
+.mod-tab {
+  height: var(--pill-h);
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* consistent rounded-rect radius */
+.mod-row,
+.p-promise,
+#promiseText,
+#tagInput,
+#settingsView textarea,
+#settingsView input,
+.set-cat input {
+  border-radius: var(--radius-md);
 }
