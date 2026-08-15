@@ -1,32 +1,73 @@
-# React + TypeScript + Vite
+# WishCollective
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A 3D "promise wall" — pin your intentions, react to others', and keep the small promises that create lasting change.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Vite + React 19 + TypeScript (strict)** — UI
+- **Three.js** — 3D wall (command-line `WallEngine` singleton)
+- **Zustand** — client/UI state · **TanStack Query** — server state
+- **supabase-js** — Auth, PostgREST (REST), Realtime, Storage
 
-## React Compiler
+## Directory layout
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+src/
+├─ engine/      WallEngine.ts        (imperative Three.js: wall + cards + raycast)
+├─ components/  Sidebar, Dock, Compose, PromisePanel, ModPanel, AllView, ShareModal, ...
+├─ hooks/       usePromises, useAuthInit, useSettings, useCategories
+├─ store/       useAppStore.ts       (Zustand)
+├─ i18n/        en.ts, zh.ts         (type-safe dictionaries)
+├─ lib/         api.ts, types.ts, papers.ts, categories.ts, filter.ts, shareCard.ts, supabase.ts
+└─ styles/      tokens.css           (design tokens)
+supabase/migrations/                 (versioned schema)
+scripts/        admin.mjs, reload.mjs
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Setup
+
+```bash
+pnpm install
+cp .env.example .env.local   # then fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+pnpm dev
+```
+
+Without env vars the app runs in demo mode (seed data, no network).
+
+## Database
+
+Migrations live in `supabase/migrations/`. Apply them to your Supabase project:
+
+```bash
+pnpm exec supabase db push --db-url "postgresql://...session-pooler-URI..."
+```
+
+`db push` over a direct/pooler connection does **not** refresh PostgREST's schema
+cache, so reload it once after pushing:
+
+```bash
+DATABASE_URL="postgresql://..." node scripts/reload.mjs
+```
+
+Admin helpers (require `DATABASE_URL`):
+
+```bash
+DATABASE_URL="postgresql://..." node scripts/admin.mjs list
+DATABASE_URL="postgresql://..." node scripts/admin.mjs admin you@example.com
+```
+
+## Build & deploy
+
+```bash
+pnpm build      # type-check + bundle → dist/
+pnpm preview    # serve the production build locally
+```
+
+`dist/` is a static site — serve it with nginx (see the old deployment) and keep
+`/` → `index.html` fallback for the SPA.
+
+## Auth notes
+
+- Email signup requires "Enable Email provider" and "Allow new users to sign up"
+  in Supabase → Authentication → Sign In / Providers → Email.
+- Turn off "Confirm email" for local testing (avoids the free-tier email rate limit).
