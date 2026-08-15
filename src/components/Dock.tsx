@@ -4,6 +4,8 @@ import { useT } from "../i18n/useT"
 export function Dock() {
   const t = useT()
   const promises = useAppStore((s) => s.promises)
+  const select = useAppStore((s) => s.select)
+  const setComposeOpen = useAppStore((s) => s.setComposeOpen)
   const recents = [...promises].slice(0, 4)
 
   return (
@@ -14,10 +16,13 @@ export function Dock() {
       </div>
       <div className="dock-row">
         {recents.map((p) => (
-          <button key={p.id} className="mini">
+          <button key={p.id} className="mini" onClick={() => select(p.id)}>
             {p.text}
           </button>
         ))}
+        <button className="mini start-mini" onClick={() => setComposeOpen(true)}>
+          + {t("dock.start")}
+        </button>
       </div>
     </div>
   )

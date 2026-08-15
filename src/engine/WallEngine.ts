@@ -73,11 +73,16 @@ function makeCardTexture(p: PromiseItem): THREE.CanvasTexture {
 }
 
 export class WallEngine {
+  /** Called with the promise id when the user clicks a card. */
+  onSelect: ((id: string) => void) | null = null
+
   private renderer: THREE.WebGLRenderer
   private scene = new THREE.Scene()
   private camera: THREE.PerspectiveCamera
   private group = new THREE.Group()
   private cards: THREE.Mesh[] = []
+  private raycaster = new THREE.Raycaster()
+  private pointer = new THREE.Vector2()
   private raf = 0
   private disposed = false
   private resizeHandler: () => void
@@ -99,6 +104,8 @@ export class WallEngine {
     this.scene.add(this.group)
     this.buildWall()
 
+    this.renderer.domElement.addEventListener("click", this.onClick)
+    this.renderer.domElement.addEventListener("pointermove", this.onPointerMove)
     this.resizeHandler = () => this.resize()
     window.addEventListener("resize", this.resizeHandler)
     this.loop()
@@ -127,6 +134,7 @@ export class WallEngine {
         1.6 - row * 1.8,
         (Math.random() - 0.5) * 0.4,
       )
+      mesh.userData.id = p.id
       mesh.userData.baseRot = (Math.random() - 0.5) * 0.07
       this.group.add(mesh)
       this.cards.push(mesh)
@@ -139,6 +147,27 @@ export class WallEngine {
     const wall = new THREE.Mesh(geometry, material)
     wall.position.z = -2
     this.group.add(wall)
+  }
+
+  private pick(clientX: number, clientY: number): THREE.Mesh | null {
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+    this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+    this.raycaster.setFromCamera(this.pointer, this.camera)
+    const hits = this.raycaster.intersectObjects(this.cards, false)
+    return hits.length > 0 ? (hits[0]?.object as THREE.Mesh) : null
+  }
+
+  private onClick = (e: MouseEvent) => {
+    const mesh = this.pick(e.clientX, e.clientY)
+    if (!mesh) return
+    const id = mesh.userData.id as string | undefined
+    if (id) this.onSelect?.(id)
+  }
+
+  private onPointerMove = (e: MouseEvent) => {
+    const mesh = this.pick(e.clientX, e.clientY)
+    this.renderer.domElement.style.cursor = mesh ? "pointer" : ""
   }
 
   private loop = () => {
@@ -164,6 +193,8 @@ export class WallEngine {
   dispose() {
     this.disposed = true
     cancelAnimationFrame(this.raf)
+    this.renderer.domElement.removeEventListener("click", this.onClick)
+    this.renderer.domElement.removeEventListener("pointermove", this.onPointerMove)
     window.removeEventListener("resize", this.resizeHandler)
     for (const card of this.cards) {
       const mat = card.material as THREE.MeshBasicMaterial

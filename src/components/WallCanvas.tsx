@@ -11,6 +11,7 @@ export function WallCanvas() {
     const container = containerRef.current
     if (!container) return
     const engine = new WallEngine(container)
+    engine.onSelect = (id) => useAppStore.getState().select(id)
     engine.setPromises(useAppStore.getState().promises)
     engineRef.current = engine
     return () => {
