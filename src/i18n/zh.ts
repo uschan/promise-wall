@@ -42,6 +42,8 @@ export const zh: Record<I18nKey, string> = {
   "panel.delete": "删除",
   "panel.edit": "编辑",
   "panel.share": "分享",
+  "share.download": "下载图片",
+  "share.native": "分享",
   "panel.pinned": "钉于",
   "panel.reflect": "反思",
   "panel.addrefl": "添加反思",

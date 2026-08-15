@@ -40,6 +40,8 @@ export const en = {
   "panel.delete": "Delete",
   "panel.edit": "Edit",
   "panel.share": "Share",
+  "share.download": "Download image",
+  "share.native": "Share",
   "panel.pinned": "Pinned on",
   "panel.reflect": "Reflect",
   "panel.addrefl": "Add reflection",

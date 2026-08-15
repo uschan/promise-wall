@@ -16,6 +16,7 @@ type AppState = {
   authOpen: boolean
   modOpen: boolean
   allViewOpen: boolean
+  shareId: string | null
   categories: Category[] | null
   templates: string[] | null
   quotes: string[] | null
@@ -33,6 +34,7 @@ type AppState = {
   setAuthOpen: (open: boolean) => void
   setModOpen: (open: boolean) => void
   setAllViewOpen: (open: boolean) => void
+  setShareId: (id: string | null) => void
   setCategories: (categories: Category[] | null) => void
   setTemplates: (templates: string[] | null) => void
   setQuotes: (quotes: string[] | null) => void
@@ -55,6 +57,7 @@ export const useAppStore = create<AppState>((set) => ({
   authOpen: false,
   modOpen: false,
   allViewOpen: false,
+  shareId: null,
   categories: null,
   templates: null,
   quotes: null,
@@ -77,6 +80,7 @@ export const useAppStore = create<AppState>((set) => ({
   setAuthOpen: (authOpen) => set({ authOpen }),
   setModOpen: (modOpen) => set({ modOpen }),
   setAllViewOpen: (allViewOpen) => set({ allViewOpen }),
+  setShareId: (shareId) => set({ shareId }),
   setCategories: (categories) => set({ categories }),
   setTemplates: (templates) => set({ templates }),
   setQuotes: (quotes) => set({ quotes }),

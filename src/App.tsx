@@ -8,6 +8,7 @@ import { Toast } from "./components/Toast"
 import { AllView } from "./components/AllView"
 import { ModPanel } from "./components/ModPanel"
 import { Quote } from "./components/Quote"
+import { ShareModal } from "./components/ShareModal"
 import { usePromises } from "./hooks/usePromises"
 import { useAuthInit } from "./hooks/useAuthInit"
 import { useSettings } from "./hooks/useSettings"
@@ -30,6 +31,7 @@ export default function App() {
       <AuthModal />
       <AllView />
       <ModPanel />
+      <ShareModal />
       <Toast />
       <button className="add-btn" onClick={openCreate} aria-label="Add a promise">
         +

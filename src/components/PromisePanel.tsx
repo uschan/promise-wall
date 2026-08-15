@@ -31,6 +31,7 @@ export function PromisePanel() {
   const selectedId = useAppStore((s) => s.selectedId)
   const select = useAppStore((s) => s.select)
   const openEdit = useAppStore((s) => s.openEdit)
+  const setShareId = useAppStore((s) => s.setShareId)
   const removePromise = useAppStore((s) => s.removePromise)
   const userId = useAppStore((s) => s.userId)
   const profile = useAppStore((s) => s.profile)
@@ -167,6 +168,9 @@ export function PromisePanel() {
       <div className="p-actions">
         <button className={`pill ${promise._saved ? "on" : ""}`} onClick={() => void onSave()}>
           {promise._saved ? t("panel.saved") : t("panel.save")}
+        </button>
+        <button className="pill" onClick={() => setShareId(promise.id)}>
+          {t("panel.share")}
         </button>
         <button className="pill" onClick={() => void onReport()}>
           {t("panel.report")}
