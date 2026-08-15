@@ -1,17 +1,22 @@
 import { create } from "zustand"
-import type { Lang, PromiseItem } from "../lib/types"
+import type { Lang, Profile, PromiseItem } from "../lib/types"
 
 type AppState = {
   lang: Lang
   promises: PromiseItem[]
   selectedId: string | null
   composeOpen: boolean
+  userId: string | null
+  profile: Profile | null
+  authOpen: boolean
   setLang: (lang: Lang) => void
   setPromises: (promises: PromiseItem[]) => void
   select: (id: string | null) => void
   setComposeOpen: (open: boolean) => void
   addPromise: (p: PromiseItem) => void
   removePromise: (id: string) => void
+  setAuth: (userId: string | null, profile: Profile | null) => void
+  setAuthOpen: (open: boolean) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -19,6 +24,9 @@ export const useAppStore = create<AppState>((set) => ({
   promises: [],
   selectedId: null,
   composeOpen: false,
+  userId: null,
+  profile: null,
+  authOpen: false,
   setLang: (lang) => set({ lang }),
   setPromises: (promises) => set({ promises }),
   select: (selectedId) => set({ selectedId }),
@@ -29,4 +37,6 @@ export const useAppStore = create<AppState>((set) => ({
       promises: s.promises.filter((p) => p.id !== id),
       selectedId: s.selectedId === id ? null : s.selectedId,
     })),
+  setAuth: (userId, profile) => set({ userId, profile }),
+  setAuthOpen: (authOpen) => set({ authOpen }),
 }))

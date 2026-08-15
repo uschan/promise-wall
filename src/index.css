@@ -418,3 +418,60 @@ button {
 .add-btn:hover {
   transform: translateY(-2px) scale(1.04);
 }
+
+/* ---------- auth ---------- */
+.auth {
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--panel);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 80px rgba(40, 28, 15, 0.3);
+  padding: 24px;
+}
+
+.auth h2 {
+  font-family: var(--serif);
+  font-size: 24px;
+}
+
+.auth .sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.auth input {
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.auth input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.auth .pill {
+  flex: none;
+  padding: 11px;
+  margin-top: 4px;
+}
+
+.auth .link {
+  align-self: center;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.auth-error {
+  color: #b35a4a;
+  font-size: 12.5px;
+  line-height: 1.4;
+}

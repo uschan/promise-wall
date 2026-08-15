@@ -20,6 +20,7 @@ export const en = {
   "auth.errRequired": "Email and password are required.",
   "auth.errName": "Please enter a display name.",
   "auth.errConfirm": "Check your email to confirm your account, then sign in.",
+  "auth.noBackend": "No backend connected — add Supabase keys to enable sign-in.",
   "compose.title": "Make a promise.",
   "compose.editTitle": "Edit your promise.",
   "compose.sub": "Write it as if your future self will read it here.",

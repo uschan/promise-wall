@@ -22,6 +22,7 @@ export const zh: Record<I18nKey, string> = {
   "auth.errRequired": "邮箱和密码不能为空。",
   "auth.errName": "请输入显示名。",
   "auth.errConfirm": "请查收邮件确认账户后再登录。",
+  "auth.noBackend": "尚未连接后端——配置 Supabase 密钥后即可登录。",
   "compose.title": "许下一个承诺。",
   "compose.editTitle": "编辑你的承诺。",
   "compose.sub": "写给未来的自己看。",
