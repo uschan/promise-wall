@@ -11,10 +11,12 @@ export function Toast() {
     return () => clearTimeout(timer)
   }, [toast, clearToast])
 
-  if (!toast) return null
   return (
-    <div className="toast" key={toast.key}>
-      {toast.msg}
+    <div id="toast" className={toast ? "show" : ""}>
+      <svg viewBox="0 0 24 24">
+        <path d="M5 13l4.5 4.5L19 7" />
+      </svg>
+      <span>{toast?.msg ?? ""}</span>
     </div>
   )
 }

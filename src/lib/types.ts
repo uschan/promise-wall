@@ -40,6 +40,7 @@ export type PromiseItem = {
   category?: string
   paper?: PaperKind
   tags?: string[]
+  doodle?: string
   imageData?: string
   status?: PromiseStatus
   createdAt?: number

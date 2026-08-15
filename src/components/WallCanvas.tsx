@@ -4,7 +4,7 @@ import { useAppStore } from "../store/useAppStore"
 import { filterPromises } from "../lib/filter"
 
 export function WallCanvas() {
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const engineRef = useRef<WallEngine | null>(null)
   const promises = useAppStore((s) => s.promises)
   const activeCategory = useAppStore((s) => s.activeCategory)
@@ -18,9 +18,9 @@ export function WallCanvas() {
   )
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    const engine = new WallEngine(container)
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const engine = new WallEngine(canvas)
     engine.onSelect = (id) => useAppStore.getState().select(id)
     const st = useAppStore.getState()
     engine.setPromises(
@@ -37,5 +37,5 @@ export function WallCanvas() {
     engineRef.current?.setPromises(visible)
   }, [visible])
 
-  return <div ref={containerRef} className="wall-canvas" />
+  return <canvas id="scene" ref={canvasRef} />
 }

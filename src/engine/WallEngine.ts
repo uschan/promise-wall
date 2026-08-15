@@ -53,7 +53,7 @@ function layoutCard(p: PromiseItem, i: number): CardLayout {
     attach: attaches[i % attaches.length]!,
     pinColor: golds[i % golds.length]!,
     font: Math.random() < 0.3 ? "serif" : "hand",
-    doodle: doodles[i % doodles.length]!,
+    doodle: p.doodle ?? doodles[i % doodles.length]!,
     type: p.imageData ? "photo" : "note",
   }
 }
@@ -91,7 +91,6 @@ export class WallEngine {
   private raf = 0
   private disposed = false
   private resizeHandler: () => void
-  private container: HTMLElement
   private fontsReady: Promise<void>
 
   // camera drag/zoom state
@@ -101,12 +100,11 @@ export class WallEngine {
   private pinHead = new THREE.SphereGeometry(0.17, 20, 16)
   private pinShaft = new THREE.CylinderGeometry(0.028, 0.028, 0.4, 10)
 
-  constructor(container: HTMLElement) {
-    this.container = container
-    const w = container.clientWidth || window.innerWidth
-    const h = container.clientHeight || window.innerHeight
+  constructor(canvas: HTMLCanvasElement) {
+    const w = window.innerWidth
+    const h = window.innerHeight
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(w, h)
     this.renderer.shadowMap.enabled = true
@@ -114,7 +112,6 @@ export class WallEngine {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.04
-    container.appendChild(this.renderer.domElement)
 
     this.camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 200)
     this.camera.position.set(0, 0, 34)
@@ -414,8 +411,8 @@ export class WallEngine {
   }
 
   private resize() {
-    const w = this.container.clientWidth
-    const h = this.container.clientHeight
+    const w = window.innerWidth
+    const h = window.innerHeight
     if (!w || !h) return
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
@@ -441,6 +438,5 @@ export class WallEngine {
       }
     })
     this.renderer.dispose()
-    el.remove()
   }
 }

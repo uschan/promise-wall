@@ -58,8 +58,6 @@ export function ModPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  if (!open) return null
-
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["promises"] })
 
   const removePromise = async (id: string) => {
@@ -116,31 +114,31 @@ export function ModPanel() {
   const removeCat = (i: number) => setCategories(categories.filter((_, idx) => idx !== i))
 
   return (
-    <div className="overlay" onClick={() => setModOpen(false)}>
-      <div className="mod" onClick={(e) => e.stopPropagation()}>
+    <div id="modWrap" className={open ? "open" : ""} role="dialog" aria-modal="true" onClick={() => setModOpen(false)}>
+      <div id="modBox" onClick={(e) => e.stopPropagation()}>
         <div className="av-head">
           <h2>{t("mod.title")}</h2>
-          <button className="close" onClick={() => setModOpen(false)} aria-label="Close">
+          <button aria-label="Close" onClick={() => setModOpen(false)}>
             ×
           </button>
         </div>
-        <div className="mod-tabs">
-          <button className={tab === "reports" ? "on" : ""} onClick={() => setTab("reports")}>
+        <div id="modTabs">
+          <button className={`mod-tab ${tab === "reports" ? "on" : ""}`} onClick={() => setTab("reports")}>
             {t("mod.tab.reports")}
           </button>
-          <button className={tab === "promises" ? "on" : ""} onClick={() => setTab("promises")}>
+          <button className={`mod-tab ${tab === "promises" ? "on" : ""}`} onClick={() => setTab("promises")}>
             {t("mod.tab.promises")}
           </button>
-          <button className={tab === "users" ? "on" : ""} onClick={() => setTab("users")}>
+          <button className={`mod-tab ${tab === "users" ? "on" : ""}`} onClick={() => setTab("users")}>
             {t("mod.tab.users")}
           </button>
-          <button className={tab === "settings" ? "on" : ""} onClick={() => setTab("settings")}>
+          <button className={`mod-tab ${tab === "settings" ? "on" : ""}`} onClick={() => setTab("settings")}>
             {t("mod.tab.settings")}
           </button>
         </div>
 
         {tab === "reports" && (
-          <div className="mod-body">
+          <div id="modList">
             {reports.length === 0 ? (
               <div className="mod-empty">{t("mod.empty")}</div>
             ) : (
@@ -153,13 +151,13 @@ export function ModPanel() {
                     </div>
                   </div>
                   <div className="mod-actions">
-                    <button className="pill" onClick={() => void removePromise(r.promise_id)}>
+                    <button className="mod-btn remove" onClick={() => void removePromise(r.promise_id)}>
                       {t("mod.remove")}
                     </button>
-                    <button className="pill" onClick={() => void banAuthor(r)}>
+                    <button className="mod-btn ban" onClick={() => void banAuthor(r)}>
                       {t("mod.ban")}
                     </button>
-                    <button className="pill" onClick={() => void dismissReport(r.id)}>
+                    <button className="mod-btn" onClick={() => void dismissReport(r.id)}>
                       {t("mod.dismiss")}
                     </button>
                   </div>
@@ -170,7 +168,7 @@ export function ModPanel() {
         )}
 
         {tab === "promises" && (
-          <div className="mod-body">
+          <div id="promisesView">
             {promises.length === 0 ? (
               <div className="mod-empty">{t("mod.promises.empty")}</div>
             ) : (
@@ -181,7 +179,7 @@ export function ModPanel() {
                     <div className="mod-meta">{p.author}</div>
                   </div>
                   <div className="mod-actions">
-                    <button className="pill danger" onClick={() => void removePromise(p.id)}>
+                    <button className="mod-btn remove" onClick={() => void removePromise(p.id)}>
                       {t("mod.remove")}
                     </button>
                   </div>
@@ -192,7 +190,7 @@ export function ModPanel() {
         )}
 
         {tab === "users" && (
-          <div className="mod-body">
+          <div id="usersView">
             {profiles.length === 0 ? (
               <div className="mod-empty">{t("mod.empty")}</div>
             ) : (
@@ -205,7 +203,7 @@ export function ModPanel() {
                     </div>
                   </div>
                   <div className="mod-actions">
-                    <button className={`pill ${u.banned ? "" : "danger"}`} onClick={() => void toggleBan(u)}>
+                    <button className={`mod-btn ${u.banned ? "" : "ban"}`} onClick={() => void toggleBan(u)}>
                       {u.banned ? t("mod.unban") : t("mod.ban")}
                     </button>
                   </div>
@@ -216,44 +214,36 @@ export function ModPanel() {
         )}
 
         {tab === "settings" && (
-          <div className="mod-body">
+          <div id="settingsView">
             <label>{t("mod.set.templates")}</label>
-            <textarea value={templates} onChange={(e) => setTemplates(e.target.value)} rows={4} />
+            <textarea rows={5} value={templates} onChange={(e) => setTemplates(e.target.value)} />
             <label>{t("mod.set.quotes")}</label>
-            <textarea value={quotes} onChange={(e) => setQuotes(e.target.value)} rows={4} />
+            <textarea rows={6} value={quotes} onChange={(e) => setQuotes(e.target.value)} />
             <label>{t("mod.set.categories")}</label>
-            <div className="cat-rows">
+            <div id="setCategories">
               {categories.map((c, i) => (
-                <div key={i} className="cat-row">
-                  <input className="c-icon" value={c.icon ?? ""} onChange={(e) => setCat(i, { icon: e.target.value })} placeholder="icon" />
-                  <input className="c-key" value={c.key} onChange={(e) => setCat(i, { key: e.target.value })} placeholder="key" />
+                <div key={i} className="set-cat">
+                  <input className="sc-icon" value={c.icon ?? ""} onChange={(e) => setCat(i, { icon: e.target.value })} placeholder="icon" />
+                  <input className="sc-key" value={c.key} onChange={(e) => setCat(i, { key: e.target.value })} placeholder="key" />
                   <input value={c.en} onChange={(e) => setCat(i, { en: e.target.value })} placeholder="EN" />
                   <input value={c.zh} onChange={(e) => setCat(i, { zh: e.target.value })} placeholder="中文" />
-                  <button className="x" onClick={() => removeCat(i)} aria-label="Remove">
+                  <button className="sc-del" onClick={() => removeCat(i)} aria-label="Remove">
                     ×
                   </button>
                 </div>
               ))}
             </div>
-            <button className="pill" onClick={addCategory}>
+            <button className="mod-btn" onClick={addCategory}>
               {t("mod.set.addCat")}
             </button>
             <label>{t("mod.set.rateLimit")}</label>
-            <input
-              className="num"
-              type="number"
-              min={1}
-              value={rateLimit}
-              onChange={(e) => setRateLimit(parseInt(e.target.value, 10) || 1)}
-            />
-            <div className="mod-actions">
-              <button className="pill primary" onClick={() => void save()}>
-                {t("mod.set.save")}
-              </button>
-              <button className="pill danger" onClick={() => void doReset()}>
-                {t("mod.set.resetWall")}
-              </button>
-            </div>
+            <input type="number" min={1} value={rateLimit} onChange={(e) => setRateLimit(parseInt(e.target.value, 10) || 1)} />
+            <button id="setSave" onClick={() => void save()}>
+              {t("mod.set.save")}
+            </button>
+            <button className="mod-btn remove" onClick={() => void doReset()}>
+              {t("mod.set.resetWall")}
+            </button>
           </div>
         )}
       </div>

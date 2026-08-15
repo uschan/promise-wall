@@ -1,14 +1,14 @@
 import { WallCanvas } from "./components/WallCanvas"
 import { Sidebar } from "./components/Sidebar"
+import { Topbar } from "./components/Topbar"
 import { Dock } from "./components/Dock"
 import { PromisePanel } from "./components/PromisePanel"
 import { Compose } from "./components/Compose"
 import { AuthModal } from "./components/AuthModal"
-import { Toast } from "./components/Toast"
 import { AllView } from "./components/AllView"
 import { ModPanel } from "./components/ModPanel"
-import { Quote } from "./components/Quote"
 import { ShareModal } from "./components/ShareModal"
+import { Toast } from "./components/Toast"
 import { usePromises } from "./hooks/usePromises"
 import { useAuthInit } from "./hooks/useAuthInit"
 import { useSettings } from "./hooks/useSettings"
@@ -21,10 +21,13 @@ export default function App() {
   useSettings()
 
   return (
-    <div className="app">
-      <Sidebar />
+    <>
       <WallCanvas />
-      <Quote />
+      <Sidebar />
+      <Topbar />
+      <button id="addBtn" onClick={openCreate} aria-label="Add a promise">
+        +
+      </button>
       <Dock />
       <PromisePanel />
       <Compose />
@@ -33,9 +36,6 @@ export default function App() {
       <ModPanel />
       <ShareModal />
       <Toast />
-      <button className="add-btn" onClick={openCreate} aria-label="Add a promise">
-        +
-      </button>
-    </div>
+    </>
   )
 }

@@ -16,8 +16,6 @@ export function AuthModal() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  if (!open) return null
-
   const submit = async () => {
     setError("")
     if (!email.trim() || !password) {
@@ -36,12 +34,8 @@ export function AuthModal() {
     try {
       if (signup) {
         const data = await signUp(email.trim(), password, name.trim())
-        if (data.session) {
-          // Email confirmation is off — signed in immediately.
-          setAuthOpen(false)
-        } else {
-          setError(t("auth.errConfirm"))
-        }
+        if (data.session) setAuthOpen(false)
+        else setError(t("auth.errConfirm"))
       } else {
         await signIn(email.trim(), password)
         setAuthOpen(false)
@@ -54,39 +48,53 @@ export function AuthModal() {
   }
 
   return (
-    <div className="overlay" onClick={() => setAuthOpen(false)}>
-      <form
-        className="auth"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={(e) => {
-          e.preventDefault()
-          void submit()
-        }}
-      >
+    <div
+      id="authWrap"
+      className={open ? "open" : ""}
+      role="dialog"
+      aria-modal="true"
+      onClick={() => setAuthOpen(false)}
+    >
+      <div id="authBox" onClick={(e) => e.stopPropagation()}>
+        <button aria-label="Close" onClick={() => setAuthOpen(false)}>
+          ×
+        </button>
         <h2>{signup ? t("auth.signupTitle") : t("auth.title")}</h2>
         <p className="sub">{signup ? t("auth.signupSub") : t("auth.sub")}</p>
         {signup && (
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("auth.name")} />
+          <>
+            <label>{t("auth.name")}</label>
+            <input
+              type="text"
+              placeholder={t("auth.namePh")}
+              autoComplete="nickname"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </>
         )}
+        <label>{t("auth.email")}</label>
         <input
           type="email"
+          placeholder={t("auth.emailPh")}
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={t("auth.email")}
         />
+        <label>{t("auth.password")}</label>
         <input
           type="password"
+          placeholder={t("auth.pwPh")}
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder={t("auth.password")}
         />
-        {error && <p className="auth-error">{error}</p>}
-        <button className="pill primary" type="submit" disabled={loading}>
+        {error && <div id="authError">{error}</div>}
+        <button id="authSubmit" onClick={() => void submit()} disabled={loading}>
           {signup ? t("auth.signup") : t("auth.signin")}
         </button>
         <button
           className="link"
-          type="button"
           onClick={() => {
             setSignup((v) => !v)
             setError("")
@@ -94,7 +102,7 @@ export function AuthModal() {
         >
           {signup ? t("auth.toggleSignin") : t("auth.toggleSignup")}
         </button>
-      </form>
+      </div>
     </div>
   )
 }

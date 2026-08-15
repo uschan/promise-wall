@@ -25,6 +25,7 @@ const PERSISTED_KEYS = [
   "category",
   "paper",
   "tags",
+  "doodle",
   "imageData",
   "status",
   "createdAt",
