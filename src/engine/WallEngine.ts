@@ -13,12 +13,11 @@ const WALL_TOP = 62
 const ROOM_H = WALL_TOP - FLOOR_Y
 
 const FONTS = [
-  "600 52px Caveat",
-  "600 52px 'Liu Jian Mao Cao'",
-  "600 56px 'Cormorant Garamond'",
-  "600 56px 'Ma Shan Zheng'",
+  "600 40px Caveat",
+  "600 40px 'Cormorant Garamond'",
+  "400 40px 'Liu Jian Mao Cao'",
+  "400 40px 'Ma Shan Zheng'",
 ]
-const FONT_SAMPLE = "Promise 承诺 Wall"
 
 type Attach = "pin" | "tape" | "clip"
 type CardLayout = {
@@ -91,7 +90,6 @@ export class WallEngine {
   private raf = 0
   private disposed = false
   private resizeHandler: () => void
-  private fontsReady: Promise<void>
 
   // camera drag/zoom state
   private cam = { x: 0, y: 0, z: 34, tx: 0, ty: 0, tz: 34 }
@@ -127,13 +125,12 @@ export class WallEngine {
     this.resizeHandler = () => this.resize()
     window.addEventListener("resize", this.resizeHandler)
 
-    this.fontsReady = this.loadFonts()
     this.loop()
   }
 
-  private async loadFonts() {
+  private async loadFonts(sample: string) {
     try {
-      await Promise.all(FONTS.map((f) => document.fonts.load(f, FONT_SAMPLE)))
+      await Promise.all(FONTS.map((f) => document.fonts.load(f, sample)))
     } catch {
       /* fonts optional */
     }
@@ -144,7 +141,8 @@ export class WallEngine {
   }
 
   private async rebuild(promises: PromiseItem[]) {
-    await this.fontsReady
+    const sample = promises.map((p) => `${p.text} ${p.body ?? ""}`).join(" ")
+    await this.loadFonts(sample)
     for (const g of this.cards) {
       this.group.remove(g)
       g.traverse((o) => {

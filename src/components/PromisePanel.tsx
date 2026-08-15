@@ -140,7 +140,7 @@ export function PromisePanel() {
       {promise && (
         <>
           <div className="p-top">
-            <button aria-label="Close panel" onClick={() => select(null)}>
+            <button id="pClose" aria-label="Close panel" onClick={() => select(null)}>
               <svg viewBox="0 0 24 24">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
@@ -158,7 +158,7 @@ export function PromisePanel() {
           </div>
           <div id="pCat">{cat.toUpperCase()}</div>
           <div className="p-head">
-            <h2>{promise.text}</h2>
+            <h2 id="pTitle">{promise.text}</h2>
           </div>
           {promise.body && <p id="pBody">{promise.body}</p>}
           <p id="pAuthor">— {promise.author}</p>
@@ -246,7 +246,7 @@ export function PromisePanel() {
               <span>{t("panel.share")}</span>
             </button>
             {isMine && (
-              <button aria-label="Edit" onClick={() => openEdit(promise.id)}>
+              <button id="pEditPromise" aria-label="Edit" onClick={() => openEdit(promise.id)}>
                 <svg viewBox="0 0 24 24">
                   <path d="M14.5 4.5l5 5L8 21H3v-5z" />
                   <path d="M12.5 6.5l5 5" />
@@ -262,7 +262,7 @@ export function PromisePanel() {
               <span>{t("panel.report")}</span>
             </button>
             {canDelete && (
-              <button aria-label="Delete" onClick={() => void onDelete()}>
+              <button id="pDelete" aria-label="Delete" onClick={() => void onDelete()}>
                 <svg viewBox="0 0 24 24">
                   <path d="M4 7h16" />
                   <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />

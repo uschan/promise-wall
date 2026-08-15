@@ -139,6 +139,7 @@ export function Compose() {
         <p className="sub">{t("compose.sub")}</p>
         <label>{t("compose.your")}</label>
         <textarea
+          id="promiseText"
           value={text}
           onChange={(e) => setText(e.target.value)}
           maxLength={90}
@@ -167,7 +168,9 @@ export function Compose() {
                 onClick={() => setPaper(key)}
                 aria-label={style.label}
                 title={style.label}
-              />
+              >
+                <span>{style.label}</span>
+              </button>
             ),
           )}
         </div>
@@ -178,6 +181,7 @@ export function Compose() {
           </span>
         </label>
         <input
+          id="tagInput"
           type="text"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
@@ -198,8 +202,8 @@ export function Compose() {
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
         {photoPreview && (
           <div id="photoPreviewWrap">
-            <img src={photoPreview} alt="Attached photo preview" />
-            <button type="button" aria-label="Remove photo" onClick={removePhoto}>
+            <img id="photoPreview" src={photoPreview} alt="Attached photo preview" />
+            <button id="photoClear" type="button" aria-label="Remove photo" onClick={removePhoto}>
               ×
             </button>
           </div>
@@ -214,7 +218,7 @@ export function Compose() {
           {DOODLES.map((d) => (
             <button
               key={d.key}
-              className={doodle === d.key ? "on" : ""}
+              className={`doodle-btn ${doodle === d.key ? "on" : ""}`}
               onClick={() => setDoodle(d.key)}
             >
               {d.sym}
@@ -223,8 +227,10 @@ export function Compose() {
         </div>
         {error && <div className="form-error">{error}</div>}
         <div className="row">
-          <button onClick={closeCompose}>{t("compose.cancel")}</button>
-          <button onClick={() => void place()} disabled={!text.trim() || saving}>
+          <button id="cancelBtn" onClick={closeCompose}>
+            {t("compose.cancel")}
+          </button>
+          <button id="placeBtn" onClick={() => void place()} disabled={!text.trim() || saving}>
             <svg viewBox="0 0 24 24">
               <circle cx="12" cy="9" r="3.5" />
               <path d="M12 12.5V20" />
