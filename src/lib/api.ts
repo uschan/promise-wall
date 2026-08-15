@@ -1,5 +1,5 @@
 import { supabase } from "./supabase"
-import type { PromiseItem, Profile } from "./types"
+import type { PromiseItem, Profile, ReactionType, Reflection } from "./types"
 
 type PromiseRow = {
   id: string
@@ -102,15 +102,74 @@ export async function upsertProfile(userId: string, name: string): Promise<void>
   if (error) throw error
 }
 
-// ---------- promises ----------
-export async function fetchPromises(): Promise<PromiseItem[]> {
+// ---------- photos ----------
+const PHOTO_BUCKET = "promise-photos"
+
+/** Uploads a photo to Storage and returns its public URL. */
+export async function uploadPhoto(file: File, userId: string): Promise<string> {
   const client = requireClient()
-  const { data, error } = await client
-    .from("promises")
-    .select("id, data, user_id, updated_at, created_at")
-    .order("created_at", { ascending: true })
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg"
+  const path = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`
+  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  })
   if (error) throw error
-  return (data as PromiseRow[]).map(rowToPromise)
+  const { data } = client.storage.from(PHOTO_BUCKET).getPublicUrl(path)
+  return data.publicUrl
+}
+
+// ---------- promises (enriched with reactions/saves/reflections) ----------
+export async function fetchPromises(userId?: string | null): Promise<PromiseItem[]> {
+  const client = requireClient()
+  const [pr, xr, vr, rr] = await Promise.all([
+    client
+      .from("promises")
+      .select("id, data, user_id, updated_at, created_at")
+      .order("created_at", { ascending: true }),
+    client.from("reactions").select("promise_id, user_id, type"),
+    client.from("saves").select("promise_id, user_id"),
+    client
+      .from("reflections")
+      .select("promise_id, author, text, user_id")
+      .order("created_at", { ascending: false }),
+  ])
+  if (pr.error) throw pr.error
+
+  const reactionCounts: Record<string, Record<string, number>> = {}
+  const reactedBy: Record<string, Set<ReactionType>> = {}
+  for (const r of xr.data ?? []) {
+    const bucket = (reactionCounts[r.promise_id] ??= {})
+    bucket[r.type] = (bucket[r.type] ?? 0) + 1
+    if (userId && r.user_id === userId) {
+      (reactedBy[r.promise_id] ??= new Set()).add(r.type as ReactionType)
+    }
+  }
+
+  const saveCount: Record<string, number> = {}
+  const savedSet = new Set<string>()
+  for (const s of vr.data ?? []) {
+    saveCount[s.promise_id] = (saveCount[s.promise_id] ?? 0) + 1
+    if (userId && s.user_id === userId) savedSet.add(s.promise_id)
+  }
+
+  const reflMap: Record<string, Reflection[]> = {}
+  for (const r of rr.data ?? []) {
+    ;(reflMap[r.promise_id] ??= []).push({ who: r.author, text: r.text })
+  }
+
+  return (pr.data as PromiseRow[]).map((row) => {
+    const p = rowToPromise(row)
+    const counts = reactionCounts[row.id] ?? {}
+    p._reactionCounts = counts
+    p._reacted = reactedBy[row.id] ?? new Set()
+    p.support = counts["heart"] ?? 0
+    p.saves = saveCount[row.id] ?? 0
+    p.reflect = (reflMap[row.id] ?? []).length
+    p._saved = savedSet.has(row.id)
+    p._refl = reflMap[row.id] ?? []
+    return p
+  })
 }
 
 export async function upsertPromise(p: PromiseItem, userId: string): Promise<void> {
@@ -133,31 +192,91 @@ export async function deletePromise(id: string): Promise<void> {
   if (error) throw error
 }
 
-// ---------- photos ----------
-const PHOTO_BUCKET = "promise-photos"
-
-/** Uploads a photo to Storage and returns its public URL. */
-export async function uploadPhoto(file: File, userId: string): Promise<string> {
+// ---------- interactions ----------
+export async function addReaction(
+  promiseId: string,
+  type: ReactionType,
+  userId: string,
+): Promise<void> {
   const client = requireClient()
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg"
-  const path = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`
-  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-  })
+  const { error } = await client.from("reactions").upsert(
+    { promise_id: promiseId, user_id: userId, type },
+    { onConflict: "promise_id,user_id,type" },
+  )
   if (error) throw error
-  const { data } = client.storage.from(PHOTO_BUCKET).getPublicUrl(path)
-  return data.publicUrl
 }
 
-/** Realtime subscription for cross-device promise sync. Returns an unsubscribe fn. */
+export async function removeReaction(
+  promiseId: string,
+  type: ReactionType,
+  userId: string,
+): Promise<void> {
+  const client = requireClient()
+  const { error } = await client
+    .from("reactions")
+    .delete()
+    .eq("promise_id", promiseId)
+    .eq("user_id", userId)
+    .eq("type", type)
+  if (error) throw error
+}
+
+export async function toggleSave(
+  promiseId: string,
+  userId: string,
+  active: boolean,
+): Promise<void> {
+  const client = requireClient()
+  if (active) {
+    const { error } = await client
+      .from("saves")
+      .delete()
+      .eq("promise_id", promiseId)
+      .eq("user_id", userId)
+    if (error) throw error
+  } else {
+    const { error } = await client
+      .from("saves")
+      .upsert({ promise_id: promiseId, user_id: userId }, { onConflict: "promise_id,user_id" })
+    if (error) throw error
+  }
+}
+
+export async function addReflection(
+  promiseId: string,
+  userId: string,
+  author: string,
+  text: string,
+): Promise<void> {
+  const client = requireClient()
+  const { error } = await client
+    .from("reflections")
+    .insert({ promise_id: promiseId, user_id: userId, author, text })
+  if (error) throw error
+}
+
+export async function addReport(
+  promiseId: string,
+  userId: string,
+  author: string,
+  text: string,
+): Promise<void> {
+  const client = requireClient()
+  const { error } = await client
+    .from("reports")
+    .insert({ promise_id: promiseId, user_id: userId, author, text })
+  if (error) throw error
+}
+
+/** Realtime subscription for cross-device sync. Returns an unsubscribe fn. */
 export function subscribePromises(onChange: () => void): () => void {
   if (!supabase) return () => {}
   const channel = supabase
-    .channel("promises-realtime")
-    .on("postgres_changes", { event: "*", schema: "public", table: "promises" }, () => {
-      onChange()
-    })
+    .channel("wall-realtime")
+    .on("postgres_changes", { event: "*", schema: "public", table: "promises" }, () => onChange())
+    .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, () => onChange())
+    .on("postgres_changes", { event: "*", schema: "public", table: "saves" }, () => onChange())
+    .on("postgres_changes", { event: "*", schema: "public", table: "reflections" }, () => onChange())
     .subscribe()
   return () => {
     supabase?.removeChannel(channel)

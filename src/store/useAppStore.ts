@@ -1,6 +1,8 @@
 import { create } from "zustand"
 import type { Lang, Profile, PromiseItem } from "../lib/types"
 
+type Toast = { msg: string; key: number }
+
 type AppState = {
   lang: Lang
   promises: PromiseItem[]
@@ -9,6 +11,7 @@ type AppState = {
   userId: string | null
   profile: Profile | null
   authOpen: boolean
+  toast: Toast | null
   setLang: (lang: Lang) => void
   setPromises: (promises: PromiseItem[]) => void
   select: (id: string | null) => void
@@ -17,6 +20,8 @@ type AppState = {
   removePromise: (id: string) => void
   setAuth: (userId: string | null, profile: Profile | null) => void
   setAuthOpen: (open: boolean) => void
+  showToast: (msg: string) => void
+  clearToast: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -27,6 +32,7 @@ export const useAppStore = create<AppState>((set) => ({
   userId: null,
   profile: null,
   authOpen: false,
+  toast: null,
   setLang: (lang) => set({ lang }),
   setPromises: (promises) => set({ promises }),
   select: (selectedId) => set({ selectedId }),
@@ -39,4 +45,6 @@ export const useAppStore = create<AppState>((set) => ({
     })),
   setAuth: (userId, profile) => set({ userId, profile }),
   setAuthOpen: (authOpen) => set({ authOpen }),
+  showToast: (msg) => set((s) => ({ toast: { msg, key: (s.toast?.key ?? 0) + 1 } })),
+  clearToast: () => set({ toast: null }),
 }))

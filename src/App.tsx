@@ -4,6 +4,7 @@ import { Dock } from "./components/Dock"
 import { PromisePanel } from "./components/PromisePanel"
 import { Compose } from "./components/Compose"
 import { AuthModal } from "./components/AuthModal"
+import { Toast } from "./components/Toast"
 import { usePromises } from "./hooks/usePromises"
 import { useAuthInit } from "./hooks/useAuthInit"
 import { useAppStore } from "./store/useAppStore"
@@ -21,6 +22,7 @@ export default function App() {
       <PromisePanel />
       <Compose />
       <AuthModal />
+      <Toast />
       <button className="add-btn" onClick={() => setComposeOpen(true)} aria-label="Add a promise">
         +
       </button>

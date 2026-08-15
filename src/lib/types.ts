@@ -14,6 +14,8 @@ export type PromiseStatus = "active" | "kept" | "shelved"
 
 export type ReactionType = "heart" | "thumbs" | "fire" | "smile" | "muscle"
 
+export type Reflection = { who: string; text: string }
+
 export type Category = {
   key: string
   en: string
@@ -40,6 +42,8 @@ export type PromiseItem = {
   reflect?: number
   _saved?: boolean
   _reacted?: Set<ReactionType>
+  _reactionCounts?: Record<string, number>
+  _refl?: Reflection[]
 }
 
 export type Profile = {

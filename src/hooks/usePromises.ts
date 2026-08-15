@@ -11,14 +11,15 @@ import { useAppStore } from "../store/useAppStore"
  */
 export function usePromises() {
   const setPromises = useAppStore((s) => s.setPromises)
+  const userId = useAppStore((s) => s.userId)
 
   useEffect(() => {
     if (!isSupabaseConfigured) setPromises(SEED_PROMISES)
   }, [setPromises])
 
   const query = useQuery({
-    queryKey: ["promises"],
-    queryFn: fetchPromises,
+    queryKey: ["promises", userId],
+    queryFn: () => fetchPromises(userId),
     enabled: isSupabaseConfigured,
   })
 
