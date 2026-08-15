@@ -8,11 +8,13 @@ export function WallCanvas() {
   const engineRef = useRef<WallEngine | null>(null)
   const promises = useAppStore((s) => s.promises)
   const activeCategory = useAppStore((s) => s.activeCategory)
+  const view = useAppStore((s) => s.view)
   const searchQuery = useAppStore((s) => s.searchQuery)
+  const userId = useAppStore((s) => s.userId)
 
   const visible = useMemo(
-    () => filterPromises(promises, activeCategory, searchQuery),
-    [promises, activeCategory, searchQuery],
+    () => filterPromises(promises, activeCategory, searchQuery, view, userId),
+    [promises, activeCategory, searchQuery, view, userId],
   )
 
   useEffect(() => {
@@ -20,7 +22,10 @@ export function WallCanvas() {
     if (!container) return
     const engine = new WallEngine(container)
     engine.onSelect = (id) => useAppStore.getState().select(id)
-    engine.setPromises(filterPromises(useAppStore.getState().promises, useAppStore.getState().activeCategory, useAppStore.getState().searchQuery))
+    const st = useAppStore.getState()
+    engine.setPromises(
+      filterPromises(st.promises, st.activeCategory, st.searchQuery, st.view, st.userId),
+    )
     engineRef.current = engine
     return () => {
       engine.dispose()

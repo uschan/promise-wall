@@ -10,6 +10,7 @@ type AppState = {
   composeOpen: boolean
   editingId: string | null
   activeCategory: string | null
+  view: "all" | "mine" | "saved"
   searchQuery: string
   userId: string | null
   profile: Profile | null
@@ -41,6 +42,7 @@ type AppState = {
   showToast: (msg: string) => void
   clearToast: () => void
   setActiveCategory: (cat: string | null) => void
+  setView: (view: "all" | "mine" | "saved") => void
   setSearchQuery: (q: string) => void
 }
 
@@ -51,6 +53,7 @@ export const useAppStore = create<AppState>((set) => ({
   composeOpen: false,
   editingId: null,
   activeCategory: null,
+  view: "all",
   searchQuery: "",
   userId: null,
   profile: null,
@@ -87,5 +90,6 @@ export const useAppStore = create<AppState>((set) => ({
   showToast: (msg) => set((s) => ({ toast: { msg, key: (s.toast?.key ?? 0) + 1 } })),
   clearToast: () => set({ toast: null }),
   setActiveCategory: (activeCategory) => set({ activeCategory }),
+  setView: (view) => set({ view }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
 }))

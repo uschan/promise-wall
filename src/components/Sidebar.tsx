@@ -14,9 +14,13 @@ export function Sidebar() {
   const setModOpen = useAppStore((s) => s.setModOpen)
   const activeCategory = useAppStore((s) => s.activeCategory)
   const setActiveCategory = useAppStore((s) => s.setActiveCategory)
+  const view = useAppStore((s) => s.view)
+  const setView = useAppStore((s) => s.setView)
   const searchQuery = useAppStore((s) => s.searchQuery)
   const setSearchQuery = useAppStore((s) => s.setSearchQuery)
   const categories = useCategories()
+
+  const allActive = view === "all" && activeCategory === null
 
   return (
     <aside className="sidebar">
@@ -34,16 +38,34 @@ export function Sidebar() {
       </div>
       <nav className="nav">
         <button
-          className={`nav-item ${activeCategory === null ? "active" : ""}`}
-          onClick={() => setActiveCategory(null)}
+          className={`nav-item ${allActive ? "active" : ""}`}
+          onClick={() => {
+            setView("all")
+            setActiveCategory(null)
+          }}
         >
           <span className="cat-ico">✦</span> {t("nav.all")}
+        </button>
+        <button
+          className={`nav-item ${view === "mine" ? "active" : ""}`}
+          onClick={() => setView("mine")}
+        >
+          <span className="cat-ico">👤</span> {t("nav.mine")}
+        </button>
+        <button
+          className={`nav-item ${view === "saved" ? "active" : ""}`}
+          onClick={() => setView("saved")}
+        >
+          <span className="cat-ico">🔖</span> {t("nav.saved")}
         </button>
         {categories.map((c) => (
           <button
             key={c.key}
-            className={`nav-item ${activeCategory === c.key ? "active" : ""}`}
-            onClick={() => setActiveCategory(c.key)}
+            className={`nav-item ${view === "all" && activeCategory === c.key ? "active" : ""}`}
+            onClick={() => {
+              setView("all")
+              setActiveCategory(c.key)
+            }}
           >
             <span className="cat-ico">{c.icon}</span> {categoryLabel(c.key, lang, categories)}
           </button>
