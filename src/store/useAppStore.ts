@@ -14,6 +14,8 @@ type AppState = {
   userId: string | null
   profile: Profile | null
   authOpen: boolean
+  modOpen: boolean
+  allViewOpen: boolean
   toast: Toast | null
   setLang: (lang: Lang) => void
   setPromises: (promises: PromiseItem[]) => void
@@ -26,6 +28,8 @@ type AppState = {
   removePromise: (id: string) => void
   setAuth: (userId: string | null, profile: Profile | null) => void
   setAuthOpen: (open: boolean) => void
+  setModOpen: (open: boolean) => void
+  setAllViewOpen: (open: boolean) => void
   showToast: (msg: string) => void
   clearToast: () => void
   setActiveCategory: (cat: string | null) => void
@@ -43,6 +47,8 @@ export const useAppStore = create<AppState>((set) => ({
   userId: null,
   profile: null,
   authOpen: false,
+  modOpen: false,
+  allViewOpen: false,
   toast: null,
   setLang: (lang) => set({ lang }),
   setPromises: (promises) => set({ promises }),
@@ -60,6 +66,8 @@ export const useAppStore = create<AppState>((set) => ({
     })),
   setAuth: (userId, profile) => set({ userId, profile }),
   setAuthOpen: (authOpen) => set({ authOpen }),
+  setModOpen: (modOpen) => set({ modOpen }),
+  setAllViewOpen: (allViewOpen) => set({ allViewOpen }),
   showToast: (msg) => set((s) => ({ toast: { msg, key: (s.toast?.key ?? 0) + 1 } })),
   clearToast: () => set({ toast: null }),
   setActiveCategory: (activeCategory) => set({ activeCategory }),

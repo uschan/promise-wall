@@ -1,5 +1,13 @@
 import { supabase } from "./supabase"
-import type { PromiseItem, Profile, ReactionType, Reflection } from "./types"
+import type {
+  Category,
+  PromiseItem,
+  Profile,
+  ReactionType,
+  Reflection,
+  Report,
+  Settings,
+} from "./types"
 
 type PromiseRow = {
   id: string
@@ -281,4 +289,77 @@ export function subscribePromises(onChange: () => void): () => void {
   return () => {
     supabase?.removeChannel(channel)
   }
+}
+
+// ---------- moderation (admin) ----------
+export async function fetchReports(): Promise<Report[]> {
+  const client = requireClient()
+  const { data, error } = await client
+    .from("reports")
+    .select("*")
+    .order("created_at", { ascending: false })
+  if (error) throw error
+  return (data as Report[]) ?? []
+}
+
+export async function deleteReport(id: string): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.from("reports").delete().eq("id", id)
+  if (error) throw error
+}
+
+export async function fetchAllProfiles(): Promise<Profile[]> {
+  const client = requireClient()
+  const { data, error } = await client
+    .from("profiles")
+    .select("id, name, is_admin, banned")
+    .order("created_at", { ascending: false })
+  if (error) throw error
+  return (data as Profile[]) ?? []
+}
+
+export async function setUserBanned(userId: string, banned: boolean): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.from("profiles").update({ banned }).eq("id", userId)
+  if (error) throw error
+}
+
+// ---------- settings (admin write, public read) ----------
+export async function fetchSettings(): Promise<Settings> {
+  const client = requireClient()
+  const { data, error } = await client.from("settings").select("key, value")
+  if (error) throw error
+  const out: Settings = {}
+  for (const r of data ?? []) {
+    if (r.key === "templates") out.templates = r.value as string[]
+    else if (r.key === "quotes") out.quotes = r.value as string[]
+    else if (r.key === "categories") out.categories = r.value as Category[]
+    else if (r.key === "promise_rate_limit") out.rateLimit = r.value as number
+  }
+  return out
+}
+
+export async function saveSettings(settings: {
+  templates: string[]
+  quotes: string[]
+  categories: Category[]
+  rateLimit: number
+}): Promise<void> {
+  const client = requireClient()
+  const rows: { key: string; value: unknown }[] = [
+    { key: "templates", value: settings.templates },
+    { key: "quotes", value: settings.quotes },
+    { key: "categories", value: settings.categories },
+    { key: "promise_rate_limit", value: settings.rateLimit },
+  ]
+  for (const r of rows) {
+    const { error } = await client.from("settings").upsert(r, { onConflict: "key" })
+    if (error) throw error
+  }
+}
+
+export async function resetWall(): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.from("promises").delete().not("user_id", "is", null)
+  if (error) throw error
 }

@@ -10,6 +10,7 @@ export function Sidebar() {
   const userId = useAppStore((s) => s.userId)
   const profile = useAppStore((s) => s.profile)
   const setAuthOpen = useAppStore((s) => s.setAuthOpen)
+  const setModOpen = useAppStore((s) => s.setModOpen)
   const activeCategory = useAppStore((s) => s.activeCategory)
   const setActiveCategory = useAppStore((s) => s.setActiveCategory)
   const searchQuery = useAppStore((s) => s.searchQuery)
@@ -45,6 +46,11 @@ export function Sidebar() {
             <span className="cat-ico">{c.icon}</span> {categoryLabel(c.key, lang)}
           </button>
         ))}
+        {profile?.is_admin && (
+          <button className="nav-item" onClick={() => setModOpen(true)}>
+            <span className="cat-ico">🛡️</span> {t("nav.moderate")}
+          </button>
+        )}
       </nav>
       <div className="sidebar-foot">
         <button className="pill" onClick={() => setLang(lang === "zh" ? "en" : "zh")}>

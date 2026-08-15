@@ -6,13 +6,16 @@ export function Dock() {
   const promises = useAppStore((s) => s.promises)
   const select = useAppStore((s) => s.select)
   const openCreate = useAppStore((s) => s.openCreate)
+  const setAllViewOpen = useAppStore((s) => s.setAllViewOpen)
   const recents = [...promises].slice(0, 4)
 
   return (
     <div className="dock">
       <div className="dock-head">
         <h3>{t("dock.recent")}</h3>
-        <button className="link">{t("dock.viewall")} ›</button>
+        <button className="link" onClick={() => setAllViewOpen(true)}>
+          {t("dock.viewall")} ›
+        </button>
       </div>
       <div className="dock-row">
         {recents.map((p) => (

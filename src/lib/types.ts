@@ -16,6 +16,14 @@ export type ReactionType = "heart" | "thumbs" | "fire" | "smile" | "muscle"
 
 export type Reflection = { who: string; text: string }
 
+export type Report = {
+  id: string
+  promise_id: string
+  text: string
+  author: string
+  created_at: string
+}
+
 export type Category = {
   key: string
   en: string
