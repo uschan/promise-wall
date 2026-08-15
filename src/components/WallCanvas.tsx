@@ -18,6 +18,7 @@ export function WallCanvas() {
   const searchQuery = useAppStore((s) => s.searchQuery)
   const userId = useAppStore((s) => s.userId)
   const placing = useAppStore((s) => s.placing)
+  const selectedId = useAppStore((s) => s.selectedId)
   const queryClient = useQueryClient()
 
   const visible = useMemo(
@@ -69,6 +70,10 @@ export function WallCanvas() {
   useEffect(() => {
     engineRef.current?.setPlacing(!!placing)
   }, [placing])
+
+  useEffect(() => {
+    engineRef.current?.setSelected(selectedId)
+  }, [selectedId])
 
   return (
     <>

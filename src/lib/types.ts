@@ -36,6 +36,12 @@ export type PromiseItem = {
   imageData?: string
   x?: number
   y?: number
+  w?: number
+  rot?: number
+  attach?: string
+  font?: string
+  pinColor?: number
+  photo?: string
   status?: PromiseStatus
   createdAt?: number
   /** Runtime-only fields (not persisted in `data`). */

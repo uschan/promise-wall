@@ -204,6 +204,7 @@ export type CardTextureInput = {
   status?: PromiseStatus
   type: "note" | "photo"
   imageData?: string
+  photo?: string
 }
 
 export function makePaperTexture(p: CardTextureInput) {
@@ -369,15 +370,65 @@ export function makePhotoTexture(p: CardTextureInput) {
     draw(ctx)
     ctx.restore()
   }
-  // placeholder gradient (mountain-ish) until the real image loads
-  photoCtx((c2) => {
-    const g = c2.createLinearGradient(0, 0, 0, ph)
-    g.addColorStop(0, "#ccd8da")
-    g.addColorStop(0.6, "#ece1c6")
-    g.addColorStop(1, "#e7dcbe")
-    c2.fillStyle = g
-    c2.fillRect(0, 0, pw, ph)
-  })
+  if (p.photo === "beach") {
+    photoCtx((c2) => {
+      const g = c2.createLinearGradient(0, 0, 0, ph)
+      g.addColorStop(0, "#b9d3d8")
+      g.addColorStop(0.55, "#e8ddc4")
+      g.addColorStop(1, "#dcc9a3")
+      c2.fillStyle = g
+      c2.fillRect(0, 0, pw, ph)
+      c2.fillStyle = "#7fa8a4"
+      c2.fillRect(0, ph * 0.42, pw, ph * 0.2)
+      c2.fillStyle = "rgba(255,255,255,.55)"
+      for (let i = 0; i < 4; i++) {
+        c2.fillRect(rnd(0, pw * 0.5), ph * 0.44 + i * ph * 0.045, rnd(70, 190), 3)
+      }
+      c2.fillStyle = "#e6d5ae"
+      c2.beginPath()
+      c2.moveTo(0, ph * 0.62)
+      c2.quadraticCurveTo(pw * 0.5, ph * 0.55, pw, ph * 0.66)
+      c2.lineTo(pw, ph)
+      c2.lineTo(0, ph)
+      c2.closePath()
+      c2.fill()
+    })
+  } else {
+    photoCtx((c2) => {
+      const g = c2.createLinearGradient(0, 0, 0, ph)
+      g.addColorStop(0, "#ccd8da")
+      g.addColorStop(0.6, "#ece1c6")
+      g.addColorStop(1, "#e7dcbe")
+      c2.fillStyle = g
+      c2.fillRect(0, 0, pw, ph)
+      c2.fillStyle = "rgba(245,235,205,.9)"
+      c2.beginPath()
+      c2.arc(pw * 0.72, ph * 0.24, 34, 0, 7)
+      c2.fill()
+      const ridge = (base: number, color: string, amp: number) => {
+        c2.fillStyle = color
+        c2.beginPath()
+        c2.moveTo(0, base)
+        for (let x = 0; x <= pw; x += 26)
+          c2.lineTo(x, base - Math.abs(Math.sin(x * 0.013 + base)) * amp - rnd(0, 8))
+        c2.lineTo(pw, ph)
+        c2.lineTo(0, ph)
+        c2.closePath()
+        c2.fill()
+      }
+      ridge(ph * 0.52, "#8b9385", 60)
+      ridge(ph * 0.66, "#5f6a58", 52)
+      ridge(ph * 0.82, "#95a06b", 34)
+      c2.fillStyle = "#d8cfa6"
+      c2.beginPath()
+      c2.moveTo(pw * 0.42, ph)
+      c2.quadraticCurveTo(pw * 0.5, ph * 0.8, pw * 0.62, ph * 0.72)
+      c2.lineTo(pw * 0.66, ph * 0.72)
+      c2.quadraticCurveTo(pw * 0.56, ph * 0.82, pw * 0.52, ph)
+      c2.closePath()
+      c2.fill()
+    })
+  }
   if (p.imageData) {
     const img = new Image()
     img.crossOrigin = "anonymous"

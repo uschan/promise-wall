@@ -28,6 +28,12 @@ const PERSISTED_KEYS = [
   "imageData",
   "x",
   "y",
+  "w",
+  "rot",
+  "attach",
+  "font",
+  "pinColor",
+  "photo",
   "status",
   "createdAt",
 ] as const
