@@ -1,0 +1,18 @@
+:root {
+  --cream: #efe9df;
+  --cream-2: #f6f2ea;
+  --panel: #f8f5ef;
+  --ink: #2b241c;
+  --ink-soft: #6f655a;
+  --ink-faint: #a2988c;
+  --accent: #d97a3f;
+  --accent-soft: #f3e0d2;
+  --line: #e2dacc;
+  --green: #8a9a7b;
+  --purple: #9b8fb8;
+  --pink: #d8a8a0;
+  --radius: 16px;
+  --sans: "Inter", system-ui, sans-serif;
+  --serif: "Cormorant Garamond", "Ma Shan Zheng", Georgia, serif;
+  --hand: "Caveat", "Liu Jian Mao Cao", cursive;
+}
