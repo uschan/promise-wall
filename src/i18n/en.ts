@@ -29,6 +29,7 @@ export const en = {
   "compose.editTitle": "Edit your promise.",
   "compose.sub": "Write it as if your future self will read it here.",
   "compose.your": "Your promise",
+  "compose.maxChars": "max 90 characters",
   "compose.category": "Category",
   "compose.paper": "Paper",
   "compose.tags": "Tags",

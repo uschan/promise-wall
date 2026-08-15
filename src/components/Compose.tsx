@@ -172,7 +172,9 @@ export function Compose() {
       <div id="compose" onClick={(e) => e.stopPropagation()}>
         <h2>{editingId ? t("compose.editTitle") : t("compose.title")}</h2>
         <p className="sub">{t("compose.sub")}</p>
-        <label>{t("compose.your")}</label>
+        <label>
+          {t("compose.your")} <span className="maxhint">({t("compose.maxChars")})</span>
+        </label>
         <textarea
           id="promiseText"
           value={text}

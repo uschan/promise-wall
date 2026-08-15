@@ -31,6 +31,7 @@ export const zh: Record<I18nKey, string> = {
   "compose.editTitle": "编辑你的承诺。",
   "compose.sub": "写给未来的自己看。",
   "compose.your": "你的承诺",
+  "compose.maxChars": "最多 90 个字符",
   "compose.category": "分类",
   "compose.paper": "纸张",
   "compose.tags": "标签",

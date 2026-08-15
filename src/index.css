@@ -50,7 +50,7 @@
   justify-content: flex-end;
 }
 
-/* paper swatches: horizontal, 4 per row, name on hover only */
+/* paper swatches: horizontal, 4 per row, name on hover only, flat (no heavy shadow) */
 .papers {
   gap: 8px;
 }
@@ -59,21 +59,34 @@
   width: calc(25% - 6px);
   height: 40px;
   border-radius: 10px;
-}
-
-/* detail panel: promise + author in one dashed box */
-.p-promise-box {
-  border: 1px dashed var(--line);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-.p-sep {
-  border-top: 1px dashed var(--line);
-  margin: 10px 0;
+  box-shadow: none;
 }
 
 #pAuthor {
   color: var(--ink-faint);
-  font-style: normal;
+  font-style: italic;
+}
+
+#compose label .maxhint {
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+/* moderation lists: consistent, compact spacing */
+#promisesView,
+#usersView {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+#modList {
+  gap: 8px;
+}
+
+.mod-row {
+  padding: 10px 12px;
 }
