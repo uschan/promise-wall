@@ -918,3 +918,50 @@ button {
   flex: none;
   padding: 8px 14px;
 }
+
+/* ---------- quote ---------- */
+.quote {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  max-width: 42vw;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(246, 242, 234, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 26px rgba(70, 52, 28, 0.1);
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ---------- templates ---------- */
+.tpl-wrap {
+  margin-top: 4px;
+}
+
+.tpl-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tpl {
+  padding: 7px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-align: left;
+  transition: all 0.16s;
+}
+
+.tpl:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}

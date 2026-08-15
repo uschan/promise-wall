@@ -7,6 +7,7 @@ import { AuthModal } from "./components/AuthModal"
 import { Toast } from "./components/Toast"
 import { AllView } from "./components/AllView"
 import { ModPanel } from "./components/ModPanel"
+import { Quote } from "./components/Quote"
 import { usePromises } from "./hooks/usePromises"
 import { useAuthInit } from "./hooks/useAuthInit"
 import { useSettings } from "./hooks/useSettings"
@@ -22,6 +23,7 @@ export default function App() {
     <div className="app">
       <Sidebar />
       <WallCanvas />
+      <Quote />
       <Dock />
       <PromisePanel />
       <Compose />

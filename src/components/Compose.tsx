@@ -23,6 +23,7 @@ export function Compose() {
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement | null>(null)
   const categories = useCategories()
+  const templates = useAppStore((s) => s.templates) ?? []
 
   const [text, setText] = useState("")
   const [category, setCategory] = useState("Self-Growth")
@@ -127,6 +128,18 @@ export function Compose() {
           placeholder={t("compose.your")}
           maxLength={90}
         />
+        {templates.length > 0 && (
+          <div className="tpl-wrap">
+            <div className="field-label">{t("start.template")}</div>
+            <div className="tpl-list">
+              {templates.map((tpl, i) => (
+                <button key={i} className="tpl" onClick={() => setText(tpl)}>
+                  {tpl}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="field-label">{t("compose.category")}</div>
         <div className="chips">
           {categories.map((c) => (

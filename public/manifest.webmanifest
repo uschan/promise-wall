@@ -1,0 +1,12 @@
+{
+  "name": "WishCollective",
+  "short_name": "WishCollective",
+  "description": "Small promises, lasting change.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#efe9df",
+  "theme_color": "#d97a3f",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

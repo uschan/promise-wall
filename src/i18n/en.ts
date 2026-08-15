@@ -31,6 +31,7 @@ export const en = {
   "compose.cancel": "Cancel",
   "compose.place": "Place it on the wall",
   "compose.save": "Save changes",
+  "start.template": "Use a template",
   "compose.photo": "Photo",
   "compose.attach": "Attach a picture",
   "panel.save": "Save Promise",

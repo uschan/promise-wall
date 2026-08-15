@@ -17,6 +17,8 @@ type AppState = {
   modOpen: boolean
   allViewOpen: boolean
   categories: Category[] | null
+  templates: string[] | null
+  quotes: string[] | null
   toast: Toast | null
   setLang: (lang: Lang) => void
   setPromises: (promises: PromiseItem[]) => void
@@ -32,6 +34,8 @@ type AppState = {
   setModOpen: (open: boolean) => void
   setAllViewOpen: (open: boolean) => void
   setCategories: (categories: Category[] | null) => void
+  setTemplates: (templates: string[] | null) => void
+  setQuotes: (quotes: string[] | null) => void
   showToast: (msg: string) => void
   clearToast: () => void
   setActiveCategory: (cat: string | null) => void
@@ -52,6 +56,8 @@ export const useAppStore = create<AppState>((set) => ({
   modOpen: false,
   allViewOpen: false,
   categories: null,
+  templates: null,
+  quotes: null,
   toast: null,
   setLang: (lang) => set({ lang }),
   setPromises: (promises) => set({ promises }),
@@ -72,6 +78,8 @@ export const useAppStore = create<AppState>((set) => ({
   setModOpen: (modOpen) => set({ modOpen }),
   setAllViewOpen: (allViewOpen) => set({ allViewOpen }),
   setCategories: (categories) => set({ categories }),
+  setTemplates: (templates) => set({ templates }),
+  setQuotes: (quotes) => set({ quotes }),
   showToast: (msg) => set((s) => ({ toast: { msg, key: (s.toast?.key ?? 0) + 1 } })),
   clearToast: () => set({ toast: null }),
   setActiveCategory: (activeCategory) => set({ activeCategory }),

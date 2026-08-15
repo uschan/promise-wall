@@ -33,6 +33,7 @@ export const zh: Record<I18nKey, string> = {
   "compose.cancel": "取消",
   "compose.place": "钉到墙上",
   "compose.save": "保存修改",
+  "start.template": "用模板",
   "compose.photo": "照片",
   "compose.attach": "添加一张图片",
   "panel.save": "收藏承诺",
