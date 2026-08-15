@@ -80,6 +80,7 @@ export const en = {
   "toast.kept": "Marked as kept. Well done! 🎉",
   "toast.shelved": "Marked as shelved.",
   "toast.active": "Marked as active.",
+  "toast.rateLimit": "One promise a day keeps the magic alive.",
   "status.active": "Active",
   "status.kept": "Kept",
   "status.shelved": "Shelved",

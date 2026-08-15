@@ -127,6 +127,13 @@
   --radius-md: 12px;
 }
 
+/* own-promise actions: the original CSS hides these by default (old app toggled via JS);
+   React renders them conditionally, so force them visible when present */
+#panel #pEditPromise,
+#panel #pDelete {
+  display: flex;
+}
+
 /* consistent pill height */
 .pill-btn,
 .chip,

@@ -4,7 +4,8 @@ import { WallEngine } from "../engine/WallEngine"
 import { useAppStore } from "../store/useAppStore"
 import { filterPromises } from "../lib/filter"
 import { isSupabaseConfigured } from "../lib/supabase"
-import { upsertPromise } from "../lib/api"
+import { upsertPromise, isRateLimitError } from "../lib/api"
+import { translate } from "../i18n"
 import { useT } from "../i18n/useT"
 
 export function WallCanvas() {
@@ -35,9 +36,16 @@ export function WallCanvas() {
       const placed = { ...p, x, y }
       const uid = useAppStore.getState().userId
       if (isSupabaseConfigured && uid) {
-        void upsertPromise(placed, uid).then(() =>
-          queryClient.invalidateQueries({ queryKey: ["promises"] }),
-        )
+        upsertPromise(placed, uid)
+          .then(() => queryClient.invalidateQueries({ queryKey: ["promises"] }))
+          .catch((e) => {
+            const st = useAppStore.getState()
+            st.showToast(
+              isRateLimitError(e)
+                ? translate(st.lang, "toast.rateLimit")
+                : translate(st.lang, "toast.syncFail"),
+            )
+          })
       } else {
         useAppStore.getState().addPromise(placed)
       }

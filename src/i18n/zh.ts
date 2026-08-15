@@ -82,6 +82,7 @@ export const zh: Record<I18nKey, string> = {
   "toast.kept": "已标记为「已兑现」。太棒了！🎉",
   "toast.shelved": "已标记为「搁置」。",
   "toast.active": "已标记为「进行中」。",
+  "toast.rateLimit": "每天只能许一个愿望，许多了就不灵啦～",
   "status.active": "进行中",
   "status.kept": "已兑现",
   "status.shelved": "搁置",

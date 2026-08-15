@@ -373,6 +373,12 @@ export async function saveSettings(settings: {
   }
 }
 
+/** True when a thrown error is a Postgres row-level-security rejection (e.g. daily limit). */
+export function isRateLimitError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e)
+  return /row-level security|violates|42501/i.test(msg)
+}
+
 export async function resetWall(): Promise<void> {
   const client = requireClient()
   const { error } = await client.from("promises").delete().not("user_id", "is", null)
