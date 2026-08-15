@@ -35,8 +35,13 @@ export function AuthModal() {
     setLoading(true)
     try {
       if (signup) {
-        await signUp(email.trim(), password, name.trim())
-        setError(t("auth.errConfirm"))
+        const data = await signUp(email.trim(), password, name.trim())
+        if (data.session) {
+          // Email confirmation is off — signed in immediately.
+          setAuthOpen(false)
+        } else {
+          setError(t("auth.errConfirm"))
+        }
       } else {
         await signIn(email.trim(), password)
         setAuthOpen(false)
