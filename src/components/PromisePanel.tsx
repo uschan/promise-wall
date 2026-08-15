@@ -29,6 +29,7 @@ export function PromisePanel() {
   const lang = useAppStore((s) => s.lang)
   const selectedId = useAppStore((s) => s.selectedId)
   const select = useAppStore((s) => s.select)
+  const openEdit = useAppStore((s) => s.openEdit)
   const removePromise = useAppStore((s) => s.removePromise)
   const userId = useAppStore((s) => s.userId)
   const profile = useAppStore((s) => s.profile)
@@ -168,6 +169,11 @@ export function PromisePanel() {
         <button className="pill" onClick={() => void onReport()}>
           {t("panel.report")}
         </button>
+        {isMine && (
+          <button className="pill" onClick={() => openEdit(promise.id)}>
+            {t("panel.edit")}
+          </button>
+        )}
         {canDelete && (
           <button className="pill danger" onClick={() => void onDelete()}>
             {t("panel.delete")}

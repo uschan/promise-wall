@@ -5,7 +5,7 @@ export function Dock() {
   const t = useT()
   const promises = useAppStore((s) => s.promises)
   const select = useAppStore((s) => s.select)
-  const setComposeOpen = useAppStore((s) => s.setComposeOpen)
+  const openCreate = useAppStore((s) => s.openCreate)
   const recents = [...promises].slice(0, 4)
 
   return (
@@ -20,7 +20,7 @@ export function Dock() {
             {p.text}
           </button>
         ))}
-        <button className="mini start-mini" onClick={() => setComposeOpen(true)}>
+        <button className="mini start-mini" onClick={openCreate}>
           + {t("dock.start")}
         </button>
       </div>

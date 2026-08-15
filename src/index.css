@@ -105,6 +105,34 @@ button {
   box-shadow: 0 1px 3px rgba(60, 45, 25, 0.08);
 }
 
+.cat-ico {
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 14px;
+  text-align: center;
+  flex: none;
+}
+
+.search {
+  margin: 18px 0 14px;
+}
+
+.search input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.search input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .sidebar-foot {
   margin-top: auto;
   display: flex;

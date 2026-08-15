@@ -10,7 +10,7 @@ import { useAuthInit } from "./hooks/useAuthInit"
 import { useAppStore } from "./store/useAppStore"
 
 export default function App() {
-  const setComposeOpen = useAppStore((s) => s.setComposeOpen)
+  const openCreate = useAppStore((s) => s.openCreate)
   usePromises()
   useAuthInit()
 
@@ -23,7 +23,7 @@ export default function App() {
       <Compose />
       <AuthModal />
       <Toast />
-      <button className="add-btn" onClick={() => setComposeOpen(true)} aria-label="Add a promise">
+      <button className="add-btn" onClick={openCreate} aria-label="Add a promise">
         +
       </button>
     </div>

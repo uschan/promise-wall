@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
@@ -12,8 +12,10 @@ export function Compose() {
   const t = useT()
   const lang = useAppStore((s) => s.lang)
   const open = useAppStore((s) => s.composeOpen)
-  const setComposeOpen = useAppStore((s) => s.setComposeOpen)
+  const editingId = useAppStore((s) => s.editingId)
+  const closeCompose = useAppStore((s) => s.closeCompose)
   const addPromise = useAppStore((s) => s.addPromise)
+  const updatePromise = useAppStore((s) => s.updatePromise)
   const select = useAppStore((s) => s.select)
   const userId = useAppStore((s) => s.userId)
   const profile = useAppStore((s) => s.profile)
@@ -27,6 +29,21 @@ export function Compose() {
   const [photoPreview, setPhotoPreview] = useState("")
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
+
+  // Prefill when opening (create = reset, edit = load the promise)
+  useEffect(() => {
+    if (!open) return
+    const editing = editingId
+      ? useAppStore.getState().promises.find((p) => p.id === editingId)
+      : null
+    setText(editing?.text ?? "")
+    setCategory(editing?.category ?? "Self-Growth")
+    setPaper(editing?.paper ?? "classic")
+    setPhoto(null)
+    setPhotoPreview(editing?.imageData ?? "")
+    setError("")
+    if (fileRef.current) fileRef.current.value = ""
+  }, [open, editingId])
 
   if (!open) return null
 
@@ -50,7 +67,7 @@ export function Compose() {
     if (!trimmed) return
     setError("")
 
-    let imageData: string | undefined
+    let imageData: string | undefined = photoPreview || undefined
     if (photo) {
       try {
         imageData =
@@ -63,14 +80,18 @@ export function Compose() {
       }
     }
 
+    const base = editingId
+      ? useAppStore.getState().promises.find((p) => p.id === editingId) ?? null
+      : null
     const promise: PromiseItem = {
-      id: `p${Date.now()}`,
+      ...(base ?? {}),
+      id: base?.id ?? `p${Date.now()}`,
       text: trimmed,
-      author: profile?.name || "You",
+      author: base?.author ?? profile?.name ?? "You",
       category,
       paper,
-      status: "active",
-      createdAt: Date.now(),
+      status: base?.status ?? "active",
+      createdAt: base?.createdAt ?? Date.now(),
       imageData,
     }
 
@@ -79,6 +100,8 @@ export function Compose() {
       if (isSupabaseConfigured && userId) {
         await upsertPromise(promise, userId)
         await queryClient.invalidateQueries({ queryKey: ["promises"] })
+      } else if (base) {
+        updatePromise(promise)
       } else {
         addPromise(promise)
       }
@@ -88,16 +111,14 @@ export function Compose() {
       return
     }
     setSaving(false)
-    setComposeOpen(false)
-    setText("")
-    removePhoto()
+    closeCompose()
     select(promise.id)
   }
 
   return (
-    <div className="overlay" onClick={() => setComposeOpen(false)}>
+    <div className="overlay" onClick={closeCompose}>
       <div className="compose" onClick={(e) => e.stopPropagation()}>
-        <h2>{t("compose.title")}</h2>
+        <h2>{editingId ? t("compose.editTitle") : t("compose.title")}</h2>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -146,11 +167,11 @@ export function Compose() {
         )}
         {error && <p className="form-error">{error}</p>}
         <div className="compose-actions">
-          <button className="pill" onClick={() => setComposeOpen(false)}>
+          <button className="pill" onClick={closeCompose}>
             {t("compose.cancel")}
           </button>
           <button className="pill primary" onClick={() => void place()} disabled={!text.trim() || saving}>
-            {t("compose.place")}
+            {editingId ? t("compose.save") : t("compose.place")}
           </button>
         </div>
       </div>
