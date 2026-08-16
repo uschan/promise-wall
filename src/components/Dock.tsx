@@ -20,7 +20,9 @@ export function Dock() {
   const openCreate = useAppStore((s) => s.openCreate)
   const setTemplateOpen = useAppStore((s) => s.setTemplateOpen)
   const setAllViewOpen = useAppStore((s) => s.setAllViewOpen)
-  const recents = [...promises].slice(0, 4)
+  const recents = [...promises]
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+    .slice(0, 4)
 
   return (
     <div id="dock">

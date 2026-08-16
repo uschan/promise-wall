@@ -61,7 +61,6 @@ export function ModPanel() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["promises"] })
 
   const removePromise = async (id: string) => {
-    if (!window.confirm(t("mod.remove") + "?")) return
     await deletePromise(id)
     await invalidate()
     showToast(t("mod.promises.removed"))
@@ -210,7 +209,7 @@ export function ModPanel() {
             <button id="setSave" onClick={() => void save()}>
               {t("mod.set.save")}
             </button>
-            <button className="mod-btn remove" onClick={() => void doReset()}>
+            <button className="mod-btn remove" id="setResetWall" onClick={() => void doReset()}>
               {t("mod.set.resetWall")}
             </button>
           </div>

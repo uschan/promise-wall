@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
@@ -9,50 +9,12 @@ import { isSupabaseConfigured } from "../lib/supabase"
 import { upsertPromise, uploadPhoto } from "../lib/api"
 import type { PaperKind, PromiseItem } from "../lib/types"
 
-const DOODLES: { key: string; icon: ReactNode }[] = [
-  {
-    key: "none",
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="8" />
-        <path d="M6 6l12 12" />
-      </svg>
-    ),
-  },
-  {
-    key: "heart",
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />
-      </svg>
-    ),
-  },
-  {
-    key: "star",
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <path d="M12 3l2.4 5.4 5.6.6-4.2 3.9 1.2 5.6L12 15.3 7 18.5l1.2-5.6L4 9l5.6-.6z" />
-      </svg>
-    ),
-  },
-  {
-    key: "sprig",
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <path d="M12 21V7" />
-        <path d="M12 7c0-2.5 2-4 5.5-4 0 2.5-2 4-5.5 4z" />
-      </svg>
-    ),
-  },
-  {
-    key: "arrow",
-    icon: (
-      <svg viewBox="0 0 24 24">
-        <path d="M5 19c5-1 9-5 10.5-11" />
-        <path d="M9 7.5l6.5 1L14.5 15" />
-      </svg>
-    ),
-  },
+const DOODLES: { key: string; icon: string }[] = [
+  { key: "none", icon: "✕" },
+  { key: "heart", icon: "♥" },
+  { key: "star", icon: "★" },
+  { key: "sprig", icon: "✿" },
+  { key: "arrow", icon: "➶" },
 ]
 
 export function Compose() {
@@ -66,6 +28,8 @@ export function Compose() {
   const select = useAppStore((s) => s.select)
   const userId = useAppStore((s) => s.userId)
   const profile = useAppStore((s) => s.profile)
+  const setAuthOpen = useAppStore((s) => s.setAuthOpen)
+  const showToast = useAppStore((s) => s.showToast)
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement | null>(null)
   const categories = useCategories()
@@ -115,6 +79,15 @@ export function Compose() {
     const trimmed = text.trim()
     if (!trimmed) return
     setError("")
+
+    // Publishing to the cloud backend requires a signed-in account (matches
+    // the original app, which blocks anonymous pins instead of silently
+    // dropping them).
+    if (isSupabaseConfigured && !userId) {
+      setAuthOpen(true)
+      showToast(t("toast.signinFirst"))
+      return
+    }
 
     let imageData: string | undefined = photoPreview || undefined
     if (photo) {
@@ -200,17 +173,15 @@ export function Compose() {
         </div>
         <label>{t("compose.paper")}</label>
         <div className="papers">
-          {(Object.entries(PAPERS) as [PaperKind, { label: string; base: string }][]).map(
-            ([key, style]) => (
-              <button
-                key={key}
-                className={`paper-swatch ${key === paper ? "on" : ""}`}
-                style={{ background: style.base }}
-                onClick={() => setPaper(key)}
-                title={style.label}
-              />
-            ),
-          )}
+          {(Object.entries(PAPERS) as [PaperKind, { label: string }][]).map(([key, style]) => (
+            <button
+              key={key}
+              className={`paper-swatch ${key === paper ? "on" : ""}`}
+              data-paper={key}
+              onClick={() => setPaper(key)}
+              title={style.label}
+            />
+          ))}
         </div>
         <label>{t("compose.photo")}</label>
         <label id="photoDrop" htmlFor="photoInput">

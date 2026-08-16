@@ -113,7 +113,7 @@ export class WallEngine {
   private sparkles: { pts: THREE.Points; vel: { x: number; y: number; z: number }[]; life: number; geo: THREE.BufferGeometry }[] = []
   private AC: AudioContext | null = null
   private addAnchor = new THREE.Vector3(1.4, -2.9, 0.6)
-  private hintAnchor = new THREE.Vector3(2.5, -5.4, 0.6)
+  private hintAnchor = new THREE.Vector3(0.5, -4.0, 0.6)
   private proj = new THREE.Vector3()
   private raf = 0
   private disposed = false
@@ -127,6 +127,7 @@ export class WallEngine {
   private downPos: { sx: number; sy: number; cx: number; cy: number } | null = null
   private moved = false
   private hovered: THREE.Group | null = null
+  private selected: THREE.Group | null = null
   private pinHead = new THREE.SphereGeometry(0.17, 20, 16)
   private pinShaft = new THREE.CylinderGeometry(0.028, 0.028, 0.4, 10)
 
@@ -189,6 +190,8 @@ export class WallEngine {
     }
     this.cards = []
     this.pickables = []
+    this.selected = null
+    this.hovered = null
     promises.forEach((p, i) => this.buildCard(p, i))
   }
 
@@ -266,13 +269,16 @@ export class WallEngine {
           depthWrite: false,
         }),
       )
+      tape.material.userData.baseOp = 0.9
       tape.position.set(rnd(-0.3, 0.3), h / 2 - 0.05, 0.1)
       tape.rotation.z = rnd(-0.12, 0.12)
+      tape.renderOrder = 2
       group.add(tape)
     } else if (L.attach === "clip") {
       const dark = new THREE.MeshStandardMaterial({ color: 0x2c2c30, roughness: 0.4, metalness: 0.6 })
       const body = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.45, 0.22), dark)
       body.position.set(0, h / 2 + 0.1, 0.14)
+      body.castShadow = true
       group.add(body)
       const armMat = new THREE.MeshStandardMaterial({ color: 0xb9b9c0, roughness: 0.3, metalness: 0.85 })
       for (const s of [-1, 1]) {
@@ -311,8 +317,12 @@ export class WallEngine {
   }
 
   private buildRoom() {
-    this.scene.add(new THREE.HemisphereLight(0xfff4e2, 0x8d7d64, 0.8))
-    const key = new THREE.DirectionalLight(0xfff1dc, 0.95)
+    // three r155+ uses physical lighting: diffuse is divided by PI in the BRDF,
+    // while the original app (three r128) used legacy lighting without that
+    // division. Multiply intensities by PI to restore the original brightness.
+    const PI = Math.PI
+    this.scene.add(new THREE.HemisphereLight(0xfff4e2, 0x8d7d64, 0.8 * PI))
+    const key = new THREE.DirectionalLight(0xfff1dc, 0.95 * PI)
     key.position.set(14, 18, 26)
     key.castShadow = true
     key.shadow.mapSize.set(2048, 2048)
@@ -325,8 +335,8 @@ export class WallEngine {
     key.shadow.bias = -0.0006
     key.shadow.radius = 4
     this.scene.add(key)
-    const fill = new THREE.PointLight(0xffd9ad, 0.22, 90)
-    fill.decay = 0
+    const fill = new THREE.PointLight(0xffd9ad, 0.22 * PI, 90)
+    fill.decay = 1
     fill.position.set(-18, 4, 20)
     this.scene.add(fill)
 
@@ -589,10 +599,15 @@ export class WallEngine {
   }
 
   setSelected(id: string | null) {
+    let target: THREE.Group | null = null
     for (const g of this.cards) {
       const u = g.userData
       if (id && g.userData.id === id) {
+        target = g
         gsap.to(u.dim, { v: 0, duration: 0.4 })
+        // Drop the hover glow so the enlarged card shows its true colors
+        // instead of carrying the warm hover highlight.
+        gsap.to(u.glow, { v: 0, duration: 0.4 })
         u.tLift = 0.9
         u.tSc = 1.05
       } else {
@@ -600,6 +615,19 @@ export class WallEngine {
         u.tLift = 0
         u.tSc = 1
       }
+    }
+    this.selected = target
+    if (target) {
+      // Pan so the card sits just left of the right-hand panel, then zoom in.
+      gsap.to(this.cam, {
+        tx: clamp(target.position.x + 4.5, -20, 20),
+        ty: clamp(target.position.y, -11, 11),
+        tz: 19,
+        duration: 1.1,
+        ease: "power3.inOut",
+      })
+    } else {
+      gsap.to(this.cam, { tz: 30, duration: 0.9, ease: "power3.inOut" })
     }
   }
 
@@ -645,7 +673,7 @@ export class WallEngine {
         gsap.to(this.hovered.userData.glow, { v: 0, duration: 0.5 })
       }
       this.hovered = g
-      if (this.hovered) {
+      if (this.hovered && this.hovered !== this.selected) {
         this.hovered.userData.tLift = 0.5
         this.hovered.userData.tSc = 1.035
         gsap.to(this.hovered.userData.glow, { v: 0.3, duration: 0.4 })

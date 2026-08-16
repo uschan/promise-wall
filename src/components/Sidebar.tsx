@@ -24,6 +24,8 @@ export function Sidebar() {
   const setView = useAppStore((s) => s.setView)
   const quotes = useAppStore((s) => s.quotes)
   const categories = useCategories()
+  const menuOpen = useAppStore((s) => s.menuOpen)
+  const setMenuOpen = useAppStore((s) => s.setMenuOpen)
 
   const [qi, setQi] = useState(0)
   const quoteList = quotes && quotes.length > 0 ? quotes : DEFAULT_QUOTES
@@ -44,7 +46,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside id="sidebar">
+    <aside id="sidebar" className={menuOpen ? "open" : ""}>
       <div className="logo">
         Promise
         <br />
@@ -87,6 +89,7 @@ export function Sidebar() {
         onClick={() => {
           setView("all")
           setActiveCategory(null)
+          setMenuOpen(false)
         }}
       >
         <svg viewBox="0 0 24 24">
@@ -97,21 +100,39 @@ export function Sidebar() {
         </svg>
         <span>{t("nav.wall")}</span> <span className="dot"></span>
       </button>
-      <button className={`nav-item ${view === "mine" ? "active" : ""}`} onClick={() => setView("mine")}>
+      <button
+        className={`nav-item ${view === "mine" ? "active" : ""}`}
+        onClick={() => {
+          setView("mine")
+          setMenuOpen(false)
+        }}
+      >
         <svg viewBox="0 0 24 24">
           <circle cx="12" cy="8" r="3.4" />
           <path d="M5.5 20c.7-3.6 3.3-5.6 6.5-5.6s5.8 2 6.5 5.6" />
         </svg>
         <span>{t("nav.mine")}</span>
       </button>
-      <button className={`nav-item ${view === "saved" ? "active" : ""}`} onClick={() => setView("saved")}>
+      <button
+        className={`nav-item ${view === "saved" ? "active" : ""}`}
+        onClick={() => {
+          setView("saved")
+          setMenuOpen(false)
+        }}
+      >
         <svg viewBox="0 0 24 24">
           <path d="M7 4h10v16l-5-3.5L7 20z" />
         </svg>
         <span>{t("nav.saved")}</span>
       </button>
       {profile?.is_admin && (
-        <button className="nav-item" onClick={() => setModOpen(true)}>
+        <button
+          className="nav-item"
+          onClick={() => {
+            setModOpen(true)
+            setMenuOpen(false)
+          }}
+        >
           <svg viewBox="0 0 24 24">
             <path d="M6 21V4" />
             <path d="M6 4h12l-2.5 4L18 12H6" />
@@ -128,6 +149,7 @@ export function Sidebar() {
             onClick={() => {
               setView("all")
               setActiveCategory(c.key)
+              setMenuOpen(false)
             }}
           >
             <span className="cat-ico">{c.icon}</span>

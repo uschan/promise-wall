@@ -102,6 +102,13 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
   return lines
 }
 
+const DOODLE_GLYPHS: Record<string, string> = {
+  heart: "♥",
+  star: "★",
+  sprig: "✿",
+  arrow: "➶",
+}
+
 function drawDoodle(
   ctx: CanvasRenderingContext2D,
   kind: string,
@@ -110,56 +117,15 @@ function drawDoodle(
   s: number,
   color: string,
 ) {
+  const glyph = DOODLE_GLYPHS[kind]
+  if (!glyph) return
   ctx.save()
   ctx.translate(x, y)
-  ctx.strokeStyle = color
-  ctx.lineWidth = s * 0.09
-  ctx.lineCap = "round"
-  ctx.lineJoin = "round"
-  if (kind === "heart") {
-    ctx.beginPath()
-    ctx.moveTo(0, s * 0.32)
-    ctx.bezierCurveTo(-s * 0.55, -s * 0.15, -s * 0.22, -s * 0.5, 0, -s * 0.12)
-    ctx.bezierCurveTo(s * 0.22, -s * 0.5, s * 0.55, -s * 0.15, 0, s * 0.32)
-    ctx.stroke()
-  } else if (kind === "star") {
-    ctx.beginPath()
-    for (let i = 0; i < 10; i++) {
-      const r = i % 2 ? s * 0.2 : s * 0.45
-      const a = -Math.PI / 2 + (i * Math.PI) / 5
-      const px = Math.cos(a) * r
-      const py = Math.sin(a) * r
-      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)
-    }
-    ctx.closePath()
-    ctx.stroke()
-  } else if (kind === "sprig") {
-    ctx.beginPath()
-    ctx.moveTo(0, s * 0.5)
-    ctx.quadraticCurveTo(s * 0.1, -s * 0.1, 0, -s * 0.5)
-    ctx.stroke()
-    for (let i = 0; i < 3; i++) {
-      const yy = s * 0.3 - i * s * 0.3
-      ctx.beginPath()
-      ctx.moveTo(0, yy)
-      ctx.quadraticCurveTo(-s * 0.3, yy - s * 0.12, -s * 0.38, yy - s * 0.3)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.moveTo(0, yy)
-      ctx.quadraticCurveTo(s * 0.3, yy - s * 0.12, s * 0.38, yy - s * 0.3)
-      ctx.stroke()
-    }
-  } else if (kind === "arrow") {
-    ctx.beginPath()
-    ctx.moveTo(-s * 0.5, s * 0.2)
-    ctx.quadraticCurveTo(0, -s * 0.35, s * 0.5, 0)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(s * 0.2, -s * 0.1)
-    ctx.lineTo(s * 0.5, 0)
-    ctx.lineTo(s * 0.25, s * 0.25)
-    ctx.stroke()
-  }
+  ctx.fillStyle = color
+  ctx.font = `${Math.round(s)}px 'Segoe UI Symbol', 'Noto Sans Symbols', sans-serif`
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  ctx.fillText(glyph, 0, 0)
   ctx.restore()
 }
 
@@ -218,7 +184,7 @@ export function makePaperTexture(p: CardTextureInput) {
   ctx.clearRect(0, 0, W, H)
   ctx.save()
   if (def.torn) {
-    tornPath(ctx, W, H, 10, false)
+    tornPath(ctx, W, H, 10, def.rough)
     ctx.clip()
   }
   ctx.fillStyle = def.base
@@ -293,7 +259,7 @@ export function makePaperTexture(p: CardTextureInput) {
   ctx.strokeStyle = "rgba(90,70,45,.22)"
   ctx.lineWidth = 8
   if (def.torn) {
-    tornPath(ctx, W, H, 12, false)
+    tornPath(ctx, W, H, 12, def.rough)
     ctx.stroke()
   } else {
     ctx.strokeRect(4, 4, W - 8, H - 8)

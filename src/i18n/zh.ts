@@ -57,6 +57,7 @@ export const zh: Record<I18nKey, string> = {
   "share.native": "分享",
   "panel.pinned": "钉于",
   "panel.reflect": "反思",
+  "panel.support": "支持",
   "panel.addrefl": "添加反思",
   "panel.refl.ph": "这条承诺让你想到了什么？",
   "reaction.heart": "心",

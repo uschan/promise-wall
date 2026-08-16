@@ -61,38 +61,45 @@ export function AuthModal() {
         </button>
         <h2>{signup ? t("auth.signupTitle") : t("auth.title")}</h2>
         <p className="sub">{signup ? t("auth.signupSub") : t("auth.sub")}</p>
-        {signup && (
-          <>
-            <label>{t("auth.name")}</label>
-            <input
-              type="text"
-              placeholder={t("auth.namePh")}
-              autoComplete="nickname"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </>
-        )}
-        <label>{t("auth.email")}</label>
-        <input
-          type="email"
-          placeholder={t("auth.emailPh")}
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <label>{t("auth.password")}</label>
-        <input
-          type="password"
-          placeholder={t("auth.pwPh")}
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {error && <div id="authError">{error}</div>}
-        <button id="authSubmit" onClick={() => void submit()} disabled={loading}>
-          {signup ? t("auth.signup") : t("auth.signin")}
-        </button>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void submit()
+          }}
+        >
+          {signup && (
+            <>
+              <label>{t("auth.name")}</label>
+              <input
+                type="text"
+                placeholder={t("auth.namePh")}
+                autoComplete="nickname"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </>
+          )}
+          <label>{t("auth.email")}</label>
+          <input
+            type="email"
+            placeholder={t("auth.emailPh")}
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <label>{t("auth.password")}</label>
+          <input
+            type="password"
+            placeholder={t("auth.pwPh")}
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {error && <div id="authError">{error}</div>}
+          <button id="authSubmit" type="submit" disabled={loading}>
+            {signup ? t("auth.signup") : t("auth.signin")}
+          </button>
+        </form>
         <button
           className="link"
           onClick={() => {

@@ -10,11 +10,12 @@ export function Topbar() {
   const setAuthOpen = useAppStore((s) => s.setAuthOpen)
   const searchQuery = useAppStore((s) => s.searchQuery)
   const setSearchQuery = useAppStore((s) => s.setSearchQuery)
+  const setMenuOpen = useAppStore((s) => s.setMenuOpen)
 
   return (
     <header id="topbar">
       <div className="head-wrap">
-        <button id="menuBtn" aria-label="Open menu">
+        <button id="menuBtn" aria-label="Open menu" onClick={() => setMenuOpen(true)}>
           <svg viewBox="0 0 24 24">
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
@@ -34,7 +35,10 @@ export function Topbar() {
             <path d="M20 20l-4.2-4.2" />
           </svg>
           <input
-            type="text"
+            id="searchInput"
+            name="search"
+            type="search"
+            autoComplete="off"
             placeholder={t("search.ph")}
             aria-label="Search promises"
             value={searchQuery}

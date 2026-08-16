@@ -25,6 +25,7 @@ type AppState = {
   templates: string[] | null
   quotes: string[] | null
   toast: Toast | null
+  menuOpen: boolean
   setLang: (lang: Lang) => void
   setPromises: (promises: PromiseItem[]) => void
   select: (id: string | null) => void
@@ -47,6 +48,7 @@ type AppState = {
   setQuotes: (quotes: string[] | null) => void
   showToast: (msg: string) => void
   clearToast: () => void
+  setMenuOpen: (open: boolean) => void
   setActiveCategory: (cat: string | null) => void
   setView: (view: "all" | "mine" | "saved") => void
   setSearchQuery: (q: string) => void
@@ -74,6 +76,7 @@ export const useAppStore = create<AppState>((set) => ({
   templates: null,
   quotes: null,
   toast: null,
+  menuOpen: false,
   setLang: (lang) => set({ lang }),
   setPromises: (promises) => set({ promises }),
   select: (selectedId) => set({ selectedId }),
@@ -101,6 +104,7 @@ export const useAppStore = create<AppState>((set) => ({
   setQuotes: (quotes) => set({ quotes }),
   showToast: (msg) => set((s) => ({ toast: { msg, key: (s.toast?.key ?? 0) + 1 } })),
   clearToast: () => set({ toast: null }),
+  setMenuOpen: (menuOpen) => set({ menuOpen }),
   setActiveCategory: (activeCategory) => set({ activeCategory }),
   setView: (view) => set({ view }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),

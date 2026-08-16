@@ -55,6 +55,7 @@ export const en = {
   "share.native": "Share",
   "panel.pinned": "Pinned on",
   "panel.reflect": "Reflect",
+  "panel.support": "Support",
   "panel.addrefl": "Add reflection",
   "panel.refl.ph": "What does this promise stir in you?",
   "reaction.heart": "Heart",

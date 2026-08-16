@@ -21,6 +21,8 @@ export default function App() {
   const t = useT()
   const openCreate = useAppStore((s) => s.openCreate)
   const placing = useAppStore((s) => s.placing)
+  const menuOpen = useAppStore((s) => s.menuOpen)
+  const setMenuOpen = useAppStore((s) => s.setMenuOpen)
   usePromises()
   useAuthInit()
   useSettings()
@@ -37,6 +39,9 @@ export default function App() {
     <>
       <WallCanvas />
       <Sidebar />
+      {menuOpen && (
+        <div id="sidebarBackdrop" className="show" onClick={() => setMenuOpen(false)} />
+      )}
       <Topbar />
       <button id="addBtn" onClick={openCreate} aria-label="Add a promise">
         +

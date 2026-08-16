@@ -13,7 +13,6 @@ import {
   upsertPromise,
   deletePromise,
 } from "../lib/api"
-import { REACTIONS } from "../lib/reactions"
 import type { ReactionType, PromiseStatus } from "../lib/types"
 import type { I18nKey } from "../i18n"
 
@@ -121,6 +120,7 @@ export function PromisePanel() {
   }
 
   const cat = promise?.category ? categoryLabel(promise.category, lang, categories) : ""
+  const hearted = promise ? (promise._reacted?.has("heart") ?? false) : false
 
   return (
     <aside id="panel" className={promise ? "open" : ""} aria-label="Promise details">
@@ -152,24 +152,37 @@ export function PromisePanel() {
           </div>
           {promise.body && <p id="pBody">{promise.body}</p>}
 
-          <div className="p-reactions">
-            {REACTIONS.map((r) => {
-              const active = promise._reacted?.has(r.type) ?? false
-              const count = promise._reactionCounts?.[r.type] ?? 0
-              return (
-                <button
-                  key={r.type}
-                  className={`reaction-btn ${active ? "on" : ""}`}
-                  onClick={() => void onReaction(r.type)}
-                >
-                  <span>{r.emoji}</span>
-                  <i>{count}</i>
-                </button>
-              )
-            })}
+          <div className="p-stats">
+            <span className="p-stat support">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />
+              </svg>
+              <span>{promise.support ?? 0}</span>
+            </span>
+            <span className="p-stat reflect">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 20V9M12 9c0-3.5 2.5-5.5 6-5.5 0 3.5-2.5 5.5-6 5.5zM12 13c0-2.8-2-4.4-4.8-4.4 0 2.8 2 4.4 4.8 4.4z" />
+              </svg>
+              <span>{promise.reflect ?? 0}</span>
+            </span>
+            <span className="p-stat saves">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 4h10v16l-5-3.5L7 20z" />
+              </svg>
+              <span>{promise.saves ?? 0}</span>
+            </span>
           </div>
 
           <div className="p-actions">
+            <button
+              className={`pill-btn ${hearted ? "active" : ""}`}
+              onClick={() => void onReaction("heart")}
+            >
+              <svg viewBox="0 0 24 24">
+                <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />
+              </svg>
+              <span>{t("panel.support")}</span>
+            </button>
             <button className="pill-btn" onClick={() => setReflectOpen((v) => !v)}>
               <svg viewBox="0 0 24 24">
                 <path d="M12 20V9M12 9c0-3.5 2.5-5.5 6-5.5 0 3.5-2.5 5.5-6 5.5z" />
@@ -218,8 +231,8 @@ export function PromisePanel() {
 
           <div id="reflections">
             {(promise._refl ?? []).map((r, i) => (
-              <div key={i}>
-                <b>{r.who}</b> {r.text}
+              <div key={i} className="refl">
+                <b>{r.who}</b> · {r.text}
               </div>
             ))}
           </div>
