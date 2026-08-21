@@ -16,6 +16,15 @@ export function AuthModal() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const authError = (e: unknown): string => {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (/invalid login credentials/i.test(msg)) return t("auth.errCredentials")
+    if (/email not confirmed/i.test(msg)) return t("auth.errNotConfirmed")
+    if (/already registered|already been registered/i.test(msg)) return t("auth.errEmailInUse")
+    if (/rate limit|too many/i.test(msg)) return t("auth.errRateLimit")
+    return msg
+  }
+
   const submit = async () => {
     setError("")
     if (!email.trim() || !password) {
@@ -41,7 +50,7 @@ export function AuthModal() {
         setAuthOpen(false)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(authError(e))
     } finally {
       setLoading(false)
     }

@@ -9,6 +9,11 @@ export type PaperKind =
   | "pastelGreen"
   | "kraft"
   | "torn"
+  | "parchment"
+  | "postcard"
+  | "polaroid"
+  | "sticky"
+  | "staff"
 
 export type PromiseStatus = "active" | "kept" | "shelved"
 

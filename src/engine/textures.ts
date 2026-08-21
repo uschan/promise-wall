@@ -189,6 +189,13 @@ export function makePaperTexture(p: CardTextureInput) {
   }
   ctx.fillStyle = def.base
   ctx.fillRect(0, 0, W, H)
+  if (def.tape) {
+    ctx.fillStyle = "rgba(255,255,255,.5)"
+    ctx.fillRect(W / 2 - 62, 8, 124, 24)
+    ctx.strokeStyle = "rgba(0,0,0,.04)"
+    ctx.lineWidth = 1
+    ctx.strokeRect(W / 2 - 62, 8, 124, 24)
+  }
   for (let i = 0; i < 7; i++) {
     const g = ctx.createRadialGradient(
       Math.random() * W,
@@ -243,6 +250,19 @@ export function makePaperTexture(p: CardTextureInput) {
       ctx.lineTo(x, H)
       ctx.stroke()
     }
+  } else if (def.lines === "staff") {
+    ctx.strokeStyle = "rgba(96,86,120,.26)"
+    ctx.lineWidth = 1
+    for (let g = 0; g < 4; g++) {
+      const top = 66 + g * 96
+      for (let i = 0; i < 5; i++) {
+        const y = top + i * 8
+        ctx.beginPath()
+        ctx.moveTo(22, y)
+        ctx.lineTo(W - 22, y)
+        ctx.stroke()
+      }
+    }
   }
   if (def.spiral) {
     for (let y = 40; y < H - 20; y += 54) {
@@ -256,8 +276,26 @@ export function makePaperTexture(p: CardTextureInput) {
       ctx.fill()
     }
   }
-  ctx.strokeStyle = "rgba(90,70,45,.22)"
-  ctx.lineWidth = 8
+  if (def.frame === "postcard") {
+    ctx.strokeStyle = "rgba(196,78,64,.5)"
+    ctx.lineWidth = 3
+    ctx.strokeRect(18, 18, W - 36, H - 36)
+    ctx.strokeStyle = "rgba(72,112,164,.5)"
+    ctx.lineWidth = 2
+    ctx.strokeRect(26, 26, W - 52, H - 52)
+    ctx.strokeStyle = "rgba(196,78,64,.6)"
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(W - 66, 22, 40, 48)
+    ctx.fillStyle = "rgba(196,78,64,.08)"
+    ctx.fillRect(W - 66, 22, 40, 48)
+  } else if (def.frame === "polaroid") {
+    ctx.strokeStyle = "rgba(126,116,100,.28)"
+    ctx.lineWidth = 1.5
+    const m = 16
+    ctx.strokeRect(m, m, W - 2 * m, H - 2 * m)
+  }
+  ctx.strokeStyle = def.burnt ? "rgba(62,40,18,.6)" : "rgba(90,70,45,.22)"
+  ctx.lineWidth = def.burnt ? 13 : 8
   if (def.torn) {
     tornPath(ctx, W, H, 12, def.rough)
     ctx.stroke()

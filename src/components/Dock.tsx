@@ -2,6 +2,13 @@ import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
 import { PAPERS } from "../lib/papers"
 
+const DOODLE_GLYPH: Record<string, string> = {
+  heart: "♥",
+  star: "★",
+  sprig: "✿",
+  arrow: "➶",
+}
+
 function ago(ts?: number): string {
   if (!ts) return ""
   const s = Math.max(1, Math.floor((Date.now() - ts) / 1000))
@@ -38,18 +45,14 @@ export function Dock() {
             <button
               key={p.id}
               className="mini"
-              style={{ background: PAPERS[p.paper ?? "classic"].base }}
+              style={{ background: (PAPERS[p.paper ?? "classic"] ?? PAPERS.classic).base }}
               onClick={() => select(p.id)}
             >
               {p.text.length > 46 ? p.text.slice(0, 44) + "…" : p.text}
               <span className="mfoot">
                 <span className="mava"></span>
                 {ago(p.createdAt)}
-                <span className="mheart">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />
-                  </svg>
-                </span>
+                <span className="mheart">{DOODLE_GLYPH[p.doodle ?? ""] ?? ""}</span>
               </span>
             </button>
           ))}

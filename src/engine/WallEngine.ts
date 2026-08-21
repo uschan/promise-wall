@@ -10,6 +10,11 @@ import { makePaperTexture, makePhotoTexture, makeTapeTexture, makeWallTexture, m
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v))
 
+let activeEngine: WallEngine | null = null
+export function getActiveEngine(): WallEngine | null {
+  return activeEngine
+}
+
 const WALL_W = 64
 const WALL_H = 40
 const ROOM_W = 220
@@ -54,7 +59,21 @@ function layoutCard(p: PromiseItem, i: number): CardLayout {
   const cols = 5
   const col = i % cols
   const row = Math.floor(i / cols)
-  const papers: PaperKind[] = ["classic", "notebook", "graph", "pastelPink", "pastelPurple", "pastelGreen", "kraft", "torn"]
+  const papers: PaperKind[] = [
+    "classic",
+    "notebook",
+    "graph",
+    "pastelPink",
+    "pastelPurple",
+    "pastelGreen",
+    "kraft",
+    "torn",
+    "parchment",
+    "postcard",
+    "polaroid",
+    "sticky",
+    "staff",
+  ]
   const attaches: Attach[] = ["pin", "pin", "pin", "tape", "clip"]
   const doodles = ["none", "heart", "star", "sprig", "arrow"]
   const golds = [0x9a7b3f, 0x8a6a33, 0xa8884a, 0x7d5f3a]
@@ -74,14 +93,14 @@ function layoutCard(p: PromiseItem, i: number): CardLayout {
   }
 }
 
-function bendGeometry(geo: THREE.PlaneGeometry, w: number, h: number) {
+function bendGeometry(geo: THREE.PlaneGeometry, w: number, h: number, seed: number) {
   const pos = geo.attributes.position!
-  const amp = rnd(0.05, 0.12)
-  const ph = rnd(0, 6.28)
-  const cx = ((Math.random() < 0.5 ? -1 : 1) * w) / 2
+  const amp = seeded(seed + 100, 0.05, 0.12)
+  const ph = seeded(seed + 101, 0, 6.28)
+  const cx = (seeded(seed + 102, 0, 1) < 0.5 ? -1 : 1) * (w / 2)
   const cy = h / 2
-  const curl = rnd(0.1, 0.26)
-  const cr = rnd(1.1, 2) * (w * 0.4)
+  const curl = seeded(seed + 103, 0.1, 0.26)
+  const cr = seeded(seed + 104, 1.1, 2) * (w * 0.4)
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i)
     const y = pos.getY(i)
@@ -94,7 +113,7 @@ function bendGeometry(geo: THREE.PlaneGeometry, w: number, h: number) {
 }
 
 export class WallEngine {
-  onSelect: ((id: string) => void) | null = null
+  onSelect: ((id: string | null) => void) | null = null
   onPlace: ((x: number, y: number) => void) | null = null
 
   private renderer: THREE.WebGLRenderer
@@ -111,6 +130,7 @@ export class WallEngine {
   private px = 0
   private py = 0
   private sparkles: { pts: THREE.Points; vel: { x: number; y: number; z: number }[]; life: number; geo: THREE.BufferGeometry }[] = []
+  private hearts: { sprite: THREE.Sprite; vel: { x: number; y: number; z: number }; life: number }[] = []
   private AC: AudioContext | null = null
   private addAnchor = new THREE.Vector3(1.4, -2.9, 0.6)
   private hintAnchor = new THREE.Vector3(0.5, -4.0, 0.6)
@@ -123,7 +143,7 @@ export class WallEngine {
   private last = performance.now()
 
   // camera drag/zoom state
-  private cam = { x: 0, y: 0, z: 34, tx: 0, ty: 0, tz: 34 }
+  private cam = { x: 0, y: 0, z: 40, tx: 0, ty: 0, tz: 40 }
   private downPos: { sx: number; sy: number; cx: number; cy: number } | null = null
   private moved = false
   private hovered: THREE.Group | null = null
@@ -132,6 +152,7 @@ export class WallEngine {
   private pinShaft = new THREE.CylinderGeometry(0.028, 0.028, 0.4, 10)
 
   constructor(canvas: HTMLCanvasElement) {
+    activeEngine = this
     const w = window.innerWidth
     const h = window.innerHeight
 
@@ -139,13 +160,13 @@ export class WallEngine {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(w, h)
     this.renderer.shadowMap.enabled = true
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    this.renderer.shadowMap.type = THREE.PCFShadowMap
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.04
 
     this.camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 200)
-    this.camera.position.set(0, 0, 34)
+    this.camera.position.set(0, 0, 40)
 
     this.scene.background = new THREE.Color("#ddd4c2")
     this.scene.fog = new THREE.Fog(0xd7cdb9, 70, 160)
@@ -174,28 +195,71 @@ export class WallEngine {
   }
 
   private async rebuild(promises: PromiseItem[]) {
+    const selectedId = this.selected ? (this.selected.userData.id as string) : null
     const sample = promises.map((p) => `${p.text} ${p.body ?? ""}`).join(" ")
     await this.loadFonts(sample)
+
+    const next = new Map(promises.map((p) => [p.id, p]))
+
+    // Keep cards whose content is unchanged (reactions/saves/reflections don't
+    // affect the card texture), so a data refresh never "shakes" the wall.
+    const keep: THREE.Group[] = []
     for (const g of this.cards) {
-      this.scene.remove(g)
-      g.traverse((o) => {
-        if (o instanceof THREE.Mesh) {
-          o.geometry.dispose()
-          const m = o.material as THREE.Material | THREE.Material[]
-          if (Array.isArray(m)) m.forEach((x) => x.dispose())
-          else m.dispose()
-          if (o.customDepthMaterial) o.customDepthMaterial.dispose()
-        }
-      })
+      const prev = g.userData.p as PromiseItem
+      const p = next.get(prev.id)
+      if (!p || this.cardContentChanged(prev, p)) {
+        this.removeCardGroup(g)
+      } else {
+        g.userData.p = p
+        keep.push(g)
+      }
     }
-    this.cards = []
-    this.pickables = []
-    this.selected = null
-    this.hovered = null
-    promises.forEach((p, i) => this.buildCard(p, i))
+    this.cards = keep
+    this.pickables = this.pickables.filter((m) =>
+      keep.includes(m.userData.group as THREE.Group),
+    )
+    if (this.hovered && !keep.includes(this.hovered)) this.hovered = null
+    if (this.selected && !keep.includes(this.selected)) this.selected = null
+
+    // Add cards that are new in this batch.
+    promises.forEach((p, i) => {
+      if (!this.cards.some((g) => g.userData.id === p.id)) this.buildCard(p, i)
+    })
+
+    // Re-apply the selection so a data refresh doesn't drop the card back to
+    // the wall or undim the others.
+    if (selectedId && this.cards.some((c) => c.userData.id === selectedId)) {
+      this.setSelected(selectedId)
+    }
+  }
+
+  private cardContentChanged(prev: PromiseItem, p: PromiseItem): boolean {
+    return (
+      prev.text !== p.text ||
+      prev.paper !== p.paper ||
+      prev.font !== p.font ||
+      prev.doodle !== p.doodle ||
+      prev.status !== p.status ||
+      prev.imageData !== p.imageData ||
+      prev.photo !== p.photo
+    )
+  }
+
+  private removeCardGroup(g: THREE.Group) {
+    this.scene.remove(g)
+    g.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        o.geometry.dispose()
+        const m = o.material as THREE.Material | THREE.Material[]
+        if (Array.isArray(m)) m.forEach((x) => x.dispose())
+        else m.dispose()
+        if (o.customDepthMaterial) o.customDepthMaterial.dispose()
+      }
+    })
   }
 
   private buildCard(p: PromiseItem, i: number) {
+    const seed = hash(p.id)
     const L = layoutCard(p, i)
     const input = {
       text: p.text,
@@ -211,7 +275,7 @@ export class WallEngine {
     const w = L.w
     const h = w * ratio
     const geo = new THREE.PlaneGeometry(w, h, 12, 12)
-    bendGeometry(geo, w, h)
+    bendGeometry(geo, w, h, seed)
     const mat = new THREE.MeshStandardMaterial({
       map: tex,
       alphaTest: 0.5,
@@ -247,7 +311,7 @@ export class WallEngine {
       tSc: 1,
       dim: { v: 0 },
       baseRot: (L.rot * Math.PI) / 180,
-      phase: rnd(0, 6.28),
+      phase: seeded(seed + 200, 0, 6.28),
       glow: { v: 0 },
     }
     this.makeAttach(L, h, group)
@@ -412,11 +476,39 @@ export class WallEngine {
     )
     aoTop.position.set(0, WALL_TOP - 13, 0.05)
     this.scene.add(aoTop)
+
+    // warm light shaft ("god ray") from the upper-left, catching the dust
+    const rayC = document.createElement("canvas")
+    rayC.width = 128
+    rayC.height = 512
+    const rc = rayC.getContext("2d")!
+    const rg = rc.createLinearGradient(0, 0, 128, 0)
+    rg.addColorStop(0, "rgba(255,238,205,0)")
+    rg.addColorStop(0.5, "rgba(255,240,210,0.20)")
+    rg.addColorStop(1, "rgba(255,238,205,0)")
+    rc.fillStyle = rg
+    rc.fillRect(0, 0, 128, 512)
+    const rayTex = new THREE.CanvasTexture(rayC)
+    rayTex.colorSpace = THREE.SRGBColorSpace
+    const ray = new THREE.Mesh(
+      new THREE.PlaneGeometry(15, 62),
+      new THREE.MeshBasicMaterial({
+        map: rayTex,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        opacity: 0.5,
+      }),
+    )
+    ray.position.set(-20, 28, 12)
+    ray.rotation.z = 0.42
+    ray.rotation.y = -0.28
+    this.scene.add(ray)
   }
 
   private buildDust() {
     const dustGeo = new THREE.BufferGeometry()
-    const dustN = 110
+    const dustN = 150
     const dp = new Float32Array(dustN * 3)
     const dv: [number, number][] = []
     for (let i = 0; i < dustN; i++) {
@@ -430,7 +522,7 @@ export class WallEngine {
     this.dustVelocities = dv
     const dust = new THREE.Points(
       dustGeo,
-      new THREE.PointsMaterial({ color: 0xfff3dd, size: 0.07, transparent: true, opacity: 0.35, depthWrite: false }),
+      new THREE.PointsMaterial({ color: 0xfff3dd, size: 0.09, transparent: true, opacity: 0.5, depthWrite: false }),
     )
     this.scene.add(dust)
   }
@@ -575,6 +667,57 @@ export class WallEngine {
     }
   }
 
+  /** Spawns a floating heart at the card with the given id (Support celebration). */
+  burstHeart(id: string) {
+    const g = this.cards.find((c) => c.userData.id === id)
+    if (!g) return
+    this.spawnHeart(g.position.x, g.position.y, (g.userData.baseZ ?? 0.24) + 1.2)
+  }
+
+  private spawnHeart(x: number, y: number, z: number) {
+    const canvas = document.createElement("canvas")
+    canvas.width = canvas.height = 64
+    const ctx = canvas.getContext("2d")!
+    ctx.fillStyle = "#e0695a"
+    ctx.font = "46px 'Segoe UI Symbol', 'Noto Sans Symbols', sans-serif"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText("♥", 32, 34)
+    const tex = new THREE.CanvasTexture(canvas)
+    tex.colorSpace = THREE.SRGBColorSpace
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }),
+    )
+    sprite.position.set(x, y, z)
+    sprite.scale.setScalar(1.4)
+    this.scene.add(sprite)
+    this.hearts.push({
+      sprite,
+      vel: { x: rnd(-0.3, 0.3), y: rnd(1.2, 2), z: rnd(-0.2, 0.2) },
+      life: 1,
+    })
+  }
+
+  private updateHearts(dt: number) {
+    for (let i = this.hearts.length - 1; i >= 0; i--) {
+      const h = this.hearts[i]!
+      h.life -= dt * 0.8
+      const mat = h.sprite.material as THREE.SpriteMaterial
+      if (h.life <= 0) {
+        this.scene.remove(h.sprite)
+        mat.map?.dispose()
+        mat.dispose()
+        this.hearts.splice(i, 1)
+        continue
+      }
+      mat.opacity = h.life
+      h.sprite.position.x += h.vel.x * dt
+      h.sprite.position.y += h.vel.y * dt
+      h.sprite.position.z += h.vel.z * dt
+      h.sprite.scale.setScalar(1.4 + (1 - h.life) * 0.5)
+    }
+  }
+
   private ensureAudio() {
     if (!this.AC) {
       try {
@@ -627,7 +770,7 @@ export class WallEngine {
         ease: "power3.inOut",
       })
     } else {
-      gsap.to(this.cam, { tz: 30, duration: 0.9, ease: "power3.inOut" })
+      gsap.to(this.cam, { tz: 40, duration: 0.9, ease: "power3.inOut" })
     }
   }
 
@@ -701,6 +844,7 @@ export class WallEngine {
     if (this.moved) return
     const g = this.pick(e.clientX, e.clientY)
     if (g && g.userData.id) this.onSelect?.(g.userData.id as string)
+    else this.onSelect?.(null)
   }
 
   private onWheel = (e: WheelEvent) => {
@@ -718,7 +862,8 @@ export class WallEngine {
     this.cam.x += (this.cam.tx - this.cam.x) * 0.08
     this.cam.y += (this.cam.ty - this.cam.y) * 0.08
     this.cam.z += (this.cam.tz - this.cam.z) * 0.08
-    this.camera.position.set(this.cam.x, this.cam.y, this.cam.z)
+    const breathe = Math.sin(t * 0.35) * 0.18
+    this.camera.position.set(this.cam.x, this.cam.y, this.cam.z + breathe)
     this.camera.lookAt(this.cam.x + this.ndc.x * 0.5, this.cam.y + this.ndc.y * 0.35, 0)
     for (const g of this.cards) {
       const u = g.userData
@@ -726,9 +871,11 @@ export class WallEngine {
       u.sc += (u.tSc - u.sc) * 0.12
       g.position.z = u.baseZ + u.lift
       g.scale.setScalar(u.sc)
+      const isHover = g === this.hovered
       const sway = Math.sin(t * 0.55 + u.phase) * 0.006 + u.lift * 0.02 * Math.sin(t * 2.2 + u.phase)
       g.rotation.z = u.baseRot + sway
-      g.rotation.x = Math.sin(t * 0.4 + u.phase) * 0.004 + u.lift * 0.06
+      g.rotation.y = isHover ? this.ndc.x * 0.1 : 0
+      g.rotation.x = Math.sin(t * 0.4 + u.phase) * 0.004 + u.lift * 0.06 + (isHover ? -this.ndc.y * 0.05 : 0)
       const op = 1 - u.dim.v * 0.72
       g.traverse((o) => {
         if (o instanceof THREE.Mesh) {
@@ -764,7 +911,7 @@ export class WallEngine {
     // placement preview physics: lag + velocity tilt + edge auto-pan
     if (this.placing) {
       const M = 80
-      const sp = 26 * dt * (this.cam.z / 34)
+      const sp = 26 * dt * (this.cam.z / 40)
       if (this.px < M) this.cam.tx = clamp(this.cam.tx - sp * (1 - this.px / M), -26, 26)
       if (this.px > window.innerWidth - M) this.cam.tx = clamp(this.cam.tx + sp * (1 - (window.innerWidth - this.px) / M), -26, 26)
       if (this.py < M) this.cam.ty = clamp(this.cam.ty + sp * (1 - this.py / M), -14, 14)
@@ -784,6 +931,7 @@ export class WallEngine {
     }
     // pin celebration sparkles
     this.updateSparkles(dt)
+    this.updateHearts(dt)
     // projected UI
     const addBtn = document.getElementById("addBtn")
     if (addBtn) {
@@ -810,6 +958,7 @@ export class WallEngine {
   }
 
   dispose() {
+    if (activeEngine === this) activeEngine = null
     this.disposed = true
     cancelAnimationFrame(this.raf)
     const el = this.renderer.domElement

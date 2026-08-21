@@ -91,6 +91,30 @@
   background: #efe9dd;
   box-shadow: inset 0 0 0 3px #fff, 0 2px 6px rgba(80, 60, 35, 0.18);
 }
+.paper-swatch[data-paper="parchment"] {
+  background: #e6d3a3;
+  box-shadow: inset 0 0 0 2px rgba(62, 40, 18, 0.35);
+}
+.paper-swatch[data-paper="postcard"] {
+  background: #f5eddb;
+  box-shadow: inset 0 0 0 2px #c44e40;
+}
+.paper-swatch[data-paper="polaroid"] {
+  background: #fcfbf7;
+  box-shadow: inset 0 0 0 2px rgba(126, 116, 100, 0.3);
+}
+.paper-swatch[data-paper="sticky"] {
+  background: #ffe98a;
+}
+.paper-swatch[data-paper="staff"] {
+  background: #f7f3e9;
+  background-image: repeating-linear-gradient(
+    rgba(96, 86, 120, 0.3),
+    rgba(96, 86, 120, 0.3) 1px,
+    transparent 1px,
+    transparent 8px
+  );
+}
 
 /* doodle picker: monochrome unicode glyphs */
 .doodle-btn {
@@ -102,6 +126,13 @@
 #search input::-webkit-search-cancel-button {
   -webkit-appearance: none;
   appearance: none;
+}
+
+/* dock mini-card decoration glyph */
+.mini .mheart {
+  font-size: 14px;
+  line-height: 1;
+  color: rgba(70, 60, 45, 0.6);
 }
 
 #pAuthor {

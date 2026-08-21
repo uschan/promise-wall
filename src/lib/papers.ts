@@ -5,10 +5,13 @@ export type PaperStyle = {
   base: string
   ink: string
   torn: boolean
-  lines: "none" | "ruled" | "grid"
+  lines: "none" | "ruled" | "grid" | "staff"
   grain: number
   spiral?: boolean
   rough?: boolean
+  burnt?: boolean
+  frame?: "postcard" | "polaroid"
+  tape?: boolean
 }
 
 export const PAPERS: Record<PaperKind, PaperStyle> = {
@@ -77,5 +80,50 @@ export const PAPERS: Record<PaperKind, PaperStyle> = {
     lines: "none",
     grain: 0.13,
     rough: true,
+  },
+  parchment: {
+    label: "Parchment",
+    base: "#e6d3a3",
+    ink: "#4a3a1e",
+    torn: true,
+    lines: "none",
+    grain: 0.18,
+    rough: true,
+    burnt: true,
+  },
+  postcard: {
+    label: "Postcard",
+    base: "#f5eddb",
+    ink: "#35566e",
+    torn: false,
+    lines: "none",
+    grain: 0.05,
+    frame: "postcard",
+  },
+  polaroid: {
+    label: "Polaroid",
+    base: "#fcfbf7",
+    ink: "#4a4234",
+    torn: false,
+    lines: "none",
+    grain: 0.03,
+    frame: "polaroid",
+  },
+  sticky: {
+    label: "Sticky Note",
+    base: "#ffe98a",
+    ink: "#6b5216",
+    torn: false,
+    lines: "none",
+    grain: 0.04,
+    tape: true,
+  },
+  staff: {
+    label: "Music",
+    base: "#f7f3e9",
+    ink: "#403a48",
+    torn: false,
+    lines: "staff",
+    grain: 0.05,
   },
 }

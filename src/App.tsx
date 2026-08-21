@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { WallCanvas } from "./components/WallCanvas"
 import { Sidebar } from "./components/Sidebar"
 import { Topbar } from "./components/Topbar"
@@ -15,6 +15,7 @@ import { usePromises } from "./hooks/usePromises"
 import { useAuthInit } from "./hooks/useAuthInit"
 import { useSettings } from "./hooks/useSettings"
 import { useAppStore } from "./store/useAppStore"
+import { isSupabaseConfigured } from "./lib/supabase"
 import { useT } from "./i18n/useT"
 
 export default function App() {
@@ -23,13 +24,29 @@ export default function App() {
   const placing = useAppStore((s) => s.placing)
   const menuOpen = useAppStore((s) => s.menuOpen)
   const setMenuOpen = useAppStore((s) => s.setMenuOpen)
-  usePromises()
+  const promisesQuery = usePromises()
   useAuthInit()
   useSettings()
 
+  const [loaderDone, setLoaderDone] = useState(false)
+  const loaded = !isSupabaseConfigured || promisesQuery.isFetched
+  useEffect(() => {
+    if (!loaded) return
+    const id = setTimeout(() => setLoaderDone(true), 500)
+    return () => clearTimeout(id)
+  }, [loaded])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") useAppStore.getState().setPlacing(null)
+      if (e.key === "Escape") {
+        useAppStore.getState().setPlacing(null)
+        return
+      }
+      if (e.key === "j" || e.key === "J") {
+        const target = e.target as HTMLElement | null
+        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return
+        useAppStore.getState().openCreate()
+      }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -37,6 +54,15 @@ export default function App() {
 
   return (
     <>
+      <div id="loader" className={loaderDone ? "done" : ""}>
+        <div className="mark">
+          Promise Wall<i>&nbsp;•</i>
+        </div>
+        <div className="sub">stretching the canvas, warming the plaster…</div>
+        <div className="bar">
+          <b></b>
+        </div>
+      </div>
       <WallCanvas />
       <Sidebar />
       {menuOpen && (
@@ -44,6 +70,9 @@ export default function App() {
       )}
       <Topbar />
       <button id="addBtn" onClick={openCreate} aria-label="Add a promise">
+        +
+      </button>
+      <button id="mobileAddBtn" onClick={openCreate} aria-label="Add a promise">
         +
       </button>
       <div id="addHint">

@@ -9,4 +9,9 @@ export const SEED_PROMISES: PromiseItem[] = [
   { id: "p6", text: "Write one page of my novel each night.", author: "野盐", category: "Creativity", paper: "pastelPink" },
   { id: "p7", text: "Weekly date night, no phones at the table.", author: "Aya", category: "Relationships", paper: "classic" },
   { id: "p8", text: "Learn five new words in a new language daily.", author: "Ben", category: "Self-Growth", paper: "kraft" },
+  { id: "p9", text: "Write a letter to my future self every New Year.", author: "野盐", category: "Self-Growth", paper: "parchment" },
+  { id: "p10", text: "Send a postcard from every city I visit.", author: "Mia", category: "Creativity", paper: "postcard" },
+  { id: "p11", text: "Print one photo a week — real, not digital.", author: "Ken", category: "Creativity", paper: "polaroid" },
+  { id: "p12", text: "Stick a reminder on my mirror: you are enough.", author: "Ann", category: "Kindness", paper: "sticky" },
+  { id: "p13", text: "Practice guitar for fifteen minutes every day.", author: "Leo", category: "Learning", paper: "staff" },
 ]

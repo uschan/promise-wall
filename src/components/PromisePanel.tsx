@@ -13,6 +13,7 @@ import {
   upsertPromise,
   deletePromise,
 } from "../lib/api"
+import { getActiveEngine } from "../engine/WallEngine"
 import type { ReactionType, PromiseStatus } from "../lib/types"
 import type { I18nKey } from "../i18n"
 
@@ -58,7 +59,10 @@ export function PromisePanel() {
     const active = promise._reacted?.has(type) ?? false
     try {
       if (active) await removeReaction(promise.id, type, uid)
-      else await addReaction(promise.id, type, uid)
+      else {
+        await addReaction(promise.id, type, uid)
+        if (type === "heart") getActiveEngine()?.burstHeart(promise.id)
+      }
       await invalidate()
     } catch {
       /* noop */

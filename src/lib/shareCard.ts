@@ -55,7 +55,7 @@ function wrapText(
 export function drawShareCard(canvas: HTMLCanvasElement, p: PromiseItem) {
   const ctx = canvas.getContext("2d")
   if (!ctx) return
-  const paper = PAPERS[p.paper ?? "classic"]
+  const paper = PAPERS[p.paper ?? "classic"] ?? PAPERS.classic
   const w = canvas.width
   const h = canvas.height
 
