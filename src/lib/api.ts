@@ -81,6 +81,23 @@ export async function signIn(email: string, password: string) {
   return data
 }
 
+/** Sends a password-reset email. `redirectTo` must be allowlisted in Supabase. */
+export async function resetPasswordForEmail(email: string, redirectTo?: string): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.auth.resetPasswordForEmail(
+    email,
+    redirectTo ? { redirectTo } : undefined,
+  )
+  if (error) throw error
+}
+
+/** Sets a new password for the current (recovery) session. */
+export async function updateUserPassword(newPassword: string): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.auth.updateUser({ password: newPassword })
+  if (error) throw error
+}
+
 export async function signOut() {
   const client = requireClient()
   const { error } = await client.auth.signOut()
