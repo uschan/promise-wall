@@ -348,13 +348,39 @@ function drawUserPhoto(
 ) {
   const iw = img.width
   const ih = img.height
-  const s = Math.max(pw / iw, ph / ih)
+  const s = Math.max(pw / iw, ph / ih) // fill the photo area (no gap), center-crop overflow
   ctx.drawImage(img, (pw - iw * s) / 2, (ph - ih * s) / 2, iw * s, ih * s)
 }
 
-export function makePhotoTexture(p: CardTextureInput) {
+const clampf = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v))
+
+function applyUserPhoto(
+  c2: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  pw: number,
+  ph: number,
+) {
+  drawUserPhoto(c2, img, pw, ph)
+  const v = c2.createRadialGradient(pw / 2, ph / 2, ph * 0.3, pw / 2, ph / 2, ph * 0.75)
+  v.addColorStop(0, "rgba(0,0,0,0)")
+  v.addColorStop(1, "rgba(60,45,25,.18)")
+  c2.fillStyle = v
+  c2.fillRect(0, 0, pw, ph)
+  speckle(c2, pw, ph, 400, 0.05, true)
+}
+
+export function makePhotoTexture(p: CardTextureInput, img?: HTMLImageElement | null) {
   const W = 512
-  const H = Math.round(W * 1.24)
+  const m = 34
+  const capH = 86
+  const pw = W - m * 2
+  // Card ratio scales with the uploaded image so the photo fills without crop/gap.
+  let ratio = 1.24
+  if (img && img.width) {
+    const a = img.height / img.width // >1 portrait, <1 landscape
+    ratio = clampf((pw * a + m * 2 + capH) / W, 0.75, 2.2)
+  }
+  const H = Math.round(W * ratio)
   const c = document.createElement("canvas")
   c.width = W
   c.height = H
@@ -362,9 +388,7 @@ export function makePhotoTexture(p: CardTextureInput) {
   ctx.fillStyle = "#faf7f0"
   ctx.fillRect(0, 0, W, H)
   speckle(ctx, W, H, 300, 0.04, true)
-  const m = 34
-  const ph = H - m * 2 - 86
-  const pw = W - m * 2
+  const ph = H - m * 2 - capH
   const photoCtx = (draw: (c2: CanvasRenderingContext2D) => void) => {
     ctx.save()
     ctx.translate(m, m)
@@ -434,32 +458,24 @@ export function makePhotoTexture(p: CardTextureInput) {
     })
   }
   if (p.imageData) {
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-    img.onload = () => {
+    if (img) {
       photoCtx((c2) => {
         c2.clearRect(0, 0, pw, ph)
-        drawUserPhoto(c2, img, pw, ph)
-        const v = c2.createRadialGradient(pw / 2, ph / 2, ph * 0.3, pw / 2, ph / 2, ph * 0.75)
-        v.addColorStop(0, "rgba(0,0,0,0)")
-        v.addColorStop(1, "rgba(60,45,25,.18)")
-        c2.fillStyle = v
-        c2.fillRect(0, 0, pw, ph)
-        speckle(c2, pw, ph, 400, 0.05, true)
+        applyUserPhoto(c2, img, pw, ph)
       })
-      tex.needsUpdate = true
+    } else {
+      const el = new Image()
+      el.crossOrigin = "anonymous"
+      el.onload = () => {
+        photoCtx((c2) => {
+          c2.clearRect(0, 0, pw, ph)
+          applyUserPhoto(c2, el, pw, ph)
+        })
+        tex.needsUpdate = true
+      }
+      el.src = p.imageData
     }
-    img.src = p.imageData
   }
-  // vignette + grain on the photo area
-  photoCtx((c2) => {
-    const v = c2.createRadialGradient(pw / 2, ph / 2, ph * 0.3, pw / 2, ph / 2, ph * 0.75)
-    v.addColorStop(0, "rgba(0,0,0,0)")
-    v.addColorStop(1, "rgba(60,45,25,.18)")
-    c2.fillStyle = v
-    c2.fillRect(0, 0, pw, ph)
-    speckle(c2, pw, ph, 400, 0.05, true)
-  })
   ctx.strokeStyle = "rgba(90,70,45,.15)"
   ctx.lineWidth = 2
   ctx.strokeRect(m, m, pw, ph)
@@ -482,7 +498,7 @@ export function makePhotoTexture(p: CardTextureInput) {
   const tex = new THREE.CanvasTexture(c)
   tex.colorSpace = THREE.SRGBColorSpace
   tex.anisotropy = 8
-  return { tex, ratio: 1.24 }
+  return { tex, ratio: H / W }
 }
 
 export function makeTapeTexture() {

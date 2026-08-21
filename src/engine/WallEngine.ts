@@ -127,6 +127,7 @@ export class WallEngine {
   private ndc = new THREE.Vector2()
   private wallPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
   private placing: { group: THREE.Group; p: PromiseItem; target: THREE.Vector3; prev: THREE.Vector3 } | null = null
+  private placeToken = 0
   private px = 0
   private py = 0
   private sparkles: { pts: THREE.Points; vel: { x: number; y: number; z: number }[]; life: number; geo: THREE.BufferGeometry }[] = []
@@ -221,9 +222,10 @@ export class WallEngine {
     if (this.hovered && !keep.includes(this.hovered)) this.hovered = null
     if (this.selected && !keep.includes(this.selected)) this.selected = null
 
-    // Add cards that are new in this batch.
+    // Add cards that are new in this batch (photo cards may resolve a frame
+    // later once their image loads, so fire-and-forget).
     promises.forEach((p, i) => {
-      if (!this.cards.some((g) => g.userData.id === p.id)) this.buildCard(p, i)
+      if (!this.cards.some((g) => g.userData.id === p.id)) void this.buildCard(p, i)
     })
 
     // Re-apply the selection so a data refresh doesn't drop the card back to
@@ -258,7 +260,18 @@ export class WallEngine {
     })
   }
 
-  private buildCard(p: PromiseItem, i: number) {
+  private loadPhotoImage(src: string): Promise<HTMLImageElement | null> {
+    if (!src) return Promise.resolve(null)
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.crossOrigin = "anonymous"
+      img.onload = () => resolve(img)
+      img.onerror = () => resolve(null)
+      img.src = src
+    })
+  }
+
+  private async buildCard(p: PromiseItem, i: number): Promise<THREE.Group> {
     const seed = hash(p.id)
     const L = layoutCard(p, i)
     const input = {
@@ -271,7 +284,18 @@ export class WallEngine {
       imageData: p.imageData,
       photo: p.photo,
     }
-    const { tex, ratio } = L.type === "photo" ? makePhotoTexture(input) : makePaperTexture(input)
+    let tex: THREE.Texture
+    let ratio: number
+    if (L.type === "photo") {
+      const img = await this.loadPhotoImage(p.imageData ?? "")
+      const r = makePhotoTexture(input, img)
+      tex = r.tex
+      ratio = r.ratio
+    } else {
+      const r = makePaperTexture(input)
+      tex = r.tex
+      ratio = r.ratio
+    }
     const w = L.w
     const h = w * ratio
     const geo = new THREE.PlaneGeometry(w, h, 12, 12)
@@ -319,6 +343,7 @@ export class WallEngine {
     this.scene.add(group)
     this.cards.push(group)
     this.pickables.push(paper)
+    return group
   }
 
   private makeAttach(L: CardLayout, h: number, group: THREE.Group) {
@@ -549,12 +574,20 @@ export class WallEngine {
     return hit ? (hit.object.userData.group as THREE.Group) : null
   }
 
-  setPlacing(promise: PromiseItem | null) {
+  async setPlacing(promise: PromiseItem | null) {
     this.cancelPlacing()
     if (!promise) return
-    this.buildCard(promise, this.cards.length)
-    const g = this.cards.pop()!
-    this.pickables.pop()
+    const token = ++this.placeToken
+    const g = await this.buildCard(promise, this.cards.length)
+    if (token !== this.placeToken) {
+      // Superseded (cancelled or replaced) while the photo loaded — drop the ghost.
+      this.removeCardGroup(g)
+      return
+    }
+    const ci = this.cards.indexOf(g)
+    if (ci >= 0) this.cards.splice(ci, 1)
+    const pi = this.pickables.indexOf(g.userData.paper as THREE.Mesh)
+    if (pi >= 0) this.pickables.splice(pi, 1)
     g.position.set(this.cam.x, this.cam.y, 1.6)
     this.placing = {
       group: g,
@@ -566,6 +599,7 @@ export class WallEngine {
   }
 
   cancelPlacing() {
+    this.placeToken++
     if (!this.placing) return
     const g = this.placing.group
     this.scene.remove(g)
