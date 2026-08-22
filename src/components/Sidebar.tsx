@@ -1,14 +1,8 @@
-import { useEffect, useState } from "react"
 import { useAppStore } from "../store/useAppStore"
 import { useT } from "../i18n/useT"
 import { categoryLabel } from "../lib/categories"
 import { useCategories } from "../hooks/useCategories"
 import { signOut as apiSignOut, upsertProfile } from "../lib/api"
-
-const DEFAULT_QUOTES = [
-  "Small promises, lasting change.",
-  "The future you is shaped by the promises you keep today.",
-]
 
 export function Sidebar() {
   const t = useT()
@@ -22,17 +16,9 @@ export function Sidebar() {
   const setActiveCategory = useAppStore((s) => s.setActiveCategory)
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
-  const quotes = useAppStore((s) => s.quotes)
   const categories = useCategories()
   const menuOpen = useAppStore((s) => s.menuOpen)
   const setMenuOpen = useAppStore((s) => s.setMenuOpen)
-
-  const [qi, setQi] = useState(0)
-  const quoteList = quotes && quotes.length > 0 ? quotes : DEFAULT_QUOTES
-  useEffect(() => {
-    const timer = setInterval(() => setQi((v) => (v + 1) % quoteList.length), 8000)
-    return () => clearInterval(timer)
-  }, [quoteList.length])
 
   const name = profile?.name || (userId ? t("signedInAs") : t("notSignedIn"))
   const allActive = view === "all" && activeCategory === null
@@ -152,12 +138,11 @@ export function Sidebar() {
               setMenuOpen(false)
             }}
           >
-            <span className="cat-ico">{c.icon}</span>
+            <span className="cat-ico">{c.icon + "\uFE0E"}</span>
             <span>{categoryLabel(c.key, lang, categories)}</span>
           </button>
         ))}
       </div>
-      <p className="quote">{quoteList[qi] ?? quoteList[0] ?? ""}</p>
     </aside>
   )
 }

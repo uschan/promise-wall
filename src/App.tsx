@@ -3,13 +3,11 @@ import { WallCanvas } from "./components/WallCanvas"
 import { Sidebar } from "./components/Sidebar"
 import { Topbar } from "./components/Topbar"
 import { Dock } from "./components/Dock"
-import { PromisePanel } from "./components/PromisePanel"
+import { CardActions } from "./components/CardActions"
 import { Compose } from "./components/Compose"
 import { AuthModal } from "./components/AuthModal"
 import { AllView } from "./components/AllView"
 import { ModPanel } from "./components/ModPanel"
-import { ShareModal } from "./components/ShareModal"
-import { TemplateModal } from "./components/TemplateModal"
 import { Toast } from "./components/Toast"
 import { usePromises } from "./hooks/usePromises"
 import { useAuthInit } from "./hooks/useAuthInit"
@@ -72,9 +70,6 @@ export default function App() {
       <button id="addBtn" onClick={openCreate} aria-label="Add a promise">
         +
       </button>
-      <button id="mobileAddBtn" onClick={openCreate} aria-label="Add a promise">
-        +
-      </button>
       <div id="addHint">
         <svg viewBox="0 0 24 24">
           <path d="M19 4c-5 1-9 5-10.5 11" />
@@ -85,13 +80,11 @@ export default function App() {
         promise anywhere.
       </div>
       <Dock />
-      <PromisePanel />
+      <CardActions />
       <Compose />
       <AuthModal />
-      <TemplateModal />
       <AllView />
       <ModPanel />
-      <ShareModal />
       <Toast />
       {placing && <div id="placeHint">{t("place.hint")}</div>}
     </>

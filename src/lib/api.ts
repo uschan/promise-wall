@@ -4,7 +4,6 @@ import type {
   PromiseItem,
   Profile,
   ReactionType,
-  Reflection,
   Settings,
 } from "./types"
 
@@ -26,6 +25,7 @@ const PERSISTED_KEYS = [
   "tags",
   "doodle",
   "imageData",
+  "handwriting",
   "x",
   "y",
   "w",
@@ -34,7 +34,6 @@ const PERSISTED_KEYS = [
   "font",
   "pinColor",
   "photo",
-  "status",
   "createdAt",
 ] as const
 
@@ -138,11 +137,19 @@ export async function upsertProfile(userId: string, name: string): Promise<void>
 // ---------- photos ----------
 const PHOTO_BUCKET = "promise-photos"
 
+/** Generates a unique id without relying on `crypto.randomUUID` (needs a secure context). */
+function uid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
+}
+
 /** Uploads a photo to Storage and returns its public URL. */
 export async function uploadPhoto(file: File, userId: string): Promise<string> {
   const client = requireClient()
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg"
-  const path = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`
+  const path = `${userId}/${Date.now()}-${uid()}.${ext}`
   const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
     cacheControl: "3600",
     upsert: false,
@@ -152,20 +159,16 @@ export async function uploadPhoto(file: File, userId: string): Promise<string> {
   return data.publicUrl
 }
 
-// ---------- promises (enriched with reactions/saves/reflections) ----------
+// ---------- promises (enriched with reactions/saves) ----------
 export async function fetchPromises(userId?: string | null): Promise<PromiseItem[]> {
   const client = requireClient()
-  const [pr, xr, vr, rr] = await Promise.all([
+  const [pr, xr, vr] = await Promise.all([
     client
       .from("promises")
       .select("id, data, user_id, updated_at, created_at")
       .order("created_at", { ascending: true }),
     client.from("reactions").select("promise_id, user_id, type"),
     client.from("saves").select("promise_id, user_id"),
-    client
-      .from("reflections")
-      .select("promise_id, author, text, user_id")
-      .order("created_at", { ascending: false }),
   ])
   if (pr.error) throw pr.error
 
@@ -186,23 +189,19 @@ export async function fetchPromises(userId?: string | null): Promise<PromiseItem
     if (userId && s.user_id === userId) savedSet.add(s.promise_id)
   }
 
-  const reflMap: Record<string, Reflection[]> = {}
-  for (const r of rr.data ?? []) {
-    ;(reflMap[r.promise_id] ??= []).push({ who: r.author, text: r.text })
-  }
-
-  return (pr.data as PromiseRow[]).map((row) => {
+  const list = (pr.data as PromiseRow[]).map((row) => {
     const p = rowToPromise(row)
     const counts = reactionCounts[row.id] ?? {}
     p._reactionCounts = counts
     p._reacted = reactedBy[row.id] ?? new Set()
     p.support = counts["heart"] ?? 0
     p.saves = saveCount[row.id] ?? 0
-    p.reflect = (reflMap[row.id] ?? []).length
     p._saved = savedSet.has(row.id)
-    p._refl = reflMap[row.id] ?? []
     return p
   })
+  // Newest first everywhere (recently-added dock, moderation list, view all).
+  list.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+  return list
 }
 
 export async function upsertPromise(p: PromiseItem, userId: string): Promise<void> {
@@ -275,19 +274,6 @@ export async function toggleSave(
   }
 }
 
-export async function addReflection(
-  promiseId: string,
-  userId: string,
-  author: string,
-  text: string,
-): Promise<void> {
-  const client = requireClient()
-  const { error } = await client
-    .from("reflections")
-    .insert({ promise_id: promiseId, user_id: userId, author, text })
-  if (error) throw error
-}
-
 /** Realtime subscription for cross-device sync. Returns an unsubscribe fn. */
 export function subscribePromises(onChange: () => void): () => void {
   if (!supabase) return () => {}
@@ -296,7 +282,6 @@ export function subscribePromises(onChange: () => void): () => void {
     .on("postgres_changes", { event: "*", schema: "public", table: "promises" }, () => onChange())
     .on("postgres_changes", { event: "*", schema: "public", table: "reactions" }, () => onChange())
     .on("postgres_changes", { event: "*", schema: "public", table: "saves" }, () => onChange())
-    .on("postgres_changes", { event: "*", schema: "public", table: "reflections" }, () => onChange())
     .subscribe()
   return () => {
     supabase?.removeChannel(channel)
@@ -339,24 +324,18 @@ export async function fetchSettings(): Promise<Settings> {
   if (error) throw error
   const out: Settings = {}
   for (const r of data ?? []) {
-    if (r.key === "templates") out.templates = r.value as string[]
-    else if (r.key === "quotes") out.quotes = r.value as string[]
-    else if (r.key === "categories") out.categories = r.value as Category[]
+    if (r.key === "categories") out.categories = r.value as Category[]
     else if (r.key === "promise_rate_limit") out.rateLimit = r.value as number
   }
   return out
 }
 
 export async function saveSettings(settings: {
-  templates: string[]
-  quotes: string[]
   categories: Category[]
   rateLimit: number
 }): Promise<void> {
   const client = requireClient()
   const rows: { key: string; value: unknown }[] = [
-    { key: "templates", value: settings.templates },
-    { key: "quotes", value: settings.quotes },
     { key: "categories", value: settings.categories },
     { key: "promise_rate_limit", value: settings.rateLimit },
   ]

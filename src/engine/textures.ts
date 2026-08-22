@@ -1,8 +1,16 @@
 import * as THREE from "three"
 import { PAPERS } from "../lib/papers"
-import type { PaperKind, PromiseStatus } from "../lib/types"
+import type { PaperKind } from "../lib/types"
+import type { PaperStyle } from "../lib/papers"
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a)
+const withAlpha = (hex: string, a: number): string => {
+  const n = parseInt(hex.slice(1), 16)
+  const r = (n >> 16) & 255
+  const g = (n >> 8) & 255
+  const b = n & 255
+  return `rgba(${r},${g},${b},${a})`
+}
 
 function speckle(
   ctx: CanvasRenderingContext2D,
@@ -103,10 +111,10 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
 }
 
 const DOODLE_GLYPHS: Record<string, string> = {
-  heart: "♥",
-  star: "★",
-  sprig: "✿",
-  arrow: "➶",
+  heart: "♥\uFE0E",
+  star: "★\uFE0E",
+  sprig: "✿\uFE0E",
+  arrow: "➶\uFE0E",
 }
 
 function drawDoodle(
@@ -129,48 +137,104 @@ function drawDoodle(
   ctx.restore()
 }
 
-function drawStatusStamp(
-  ctx: CanvasRenderingContext2D,
-  status: PromiseStatus,
-  W: number,
-  H: number,
-) {
-  ctx.save()
-  const cx = W * 0.78
-  const cy = H * 0.14
-  const r = W * 0.18
-  const kept = status === "kept"
-  const c1 = kept ? "#5a7a4f" : "#8a8478"
-  const c2 = kept ? "rgba(90,122,79,0.14)" : "rgba(138,132,120,0.12)"
-  ctx.translate(cx, cy)
-  ctx.rotate(-0.2)
-  ctx.lineWidth = Math.max(3, r * 0.15)
-  ctx.strokeStyle = c1
-  ctx.fillStyle = c2
-  ctx.beginPath()
-  ctx.arc(0, 0, r, 0, 7)
-  ctx.fill()
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(0, 0, r - r * 0.18, 0, 7)
-  ctx.stroke()
-  ctx.fillStyle = c1
-  ctx.font = `600 ${r * 0.5}px Caveat, 'Liu Jian Mao Cao', cursive`
-  ctx.textAlign = "center"
-  ctx.textBaseline = "middle"
-  ctx.fillText(kept ? "KEPT" : "SHELVED", 0, r * 0.05)
-  ctx.restore()
-}
-
 export type CardTextureInput = {
   text: string
   paper: PaperKind
-  font: "hand" | "serif"
+  font: string
   doodle: string
-  status?: PromiseStatus
   type: "note" | "photo"
   imageData?: string
   photo?: string
+  handwriting?: string
+  author?: string
+  category?: string
+}
+
+/**
+ * Draws the promise text (auto-sized, centered) plus the doodle below it, on an
+ * already-prepared paper surface. Shared by `makePaperTexture` (final card) and
+ * the live compose preview so both render the writing identically. `jitter`
+ * adds the small hand-ink wobble on the final card; the live preview passes
+ * `false` so the preview stays stable while you type.
+ */
+export function drawCardText(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  text: string,
+  doodle: string,
+  font: string,
+  def: PaperStyle,
+  jitter = true,
+) {
+  const ink = def.ink || "#463a2b"
+  const pad = def.spiral ? 62 : 44
+  // `font` is a CSS font-family (or the legacy keys "hand"/"serif"). A custom
+  // font (web picker or a local font name) is used directly, with 霞鹜文楷 as the
+  // CJK fallback so Chinese text stays elegant and readable.
+  let stack: string
+  let serif = false
+  if (font && font !== "hand" && font !== "serif") {
+    stack = `${font}, 'LXGW WenKai TC', sans-serif`
+  } else if (font === "serif") {
+    serif = true
+    stack = "'Cormorant Garamond', 'LXGW WenKai TC', serif"
+  } else {
+    stack = "'Caveat', 'LXGW WenKai TC', cursive"
+  }
+  let size = serif ? 56 : 52
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  let lines: string[] = []
+  for (;;) {
+    ctx.font = `600 ${size}px ${stack}`
+    lines = wrapText(ctx, text, W - pad * 2)
+    if (lines.length * size * 1.22 < H * 0.62 || size < 30) break
+    size -= 3
+  }
+  const totalH = lines.length * size * 1.22
+  const ty = H / 2 - totalH / 2 + size * 0.6 - H * 0.04
+  ctx.fillStyle = ink
+  lines.forEach((ln, i) => {
+    ctx.save()
+    ctx.translate(
+      W / 2 + (jitter ? rnd(-3, 3) : 0),
+      ty + i * size * 1.22 + (jitter ? rnd(-2, 2) : 0),
+    )
+    ctx.rotate(jitter ? rnd(-0.012, 0.012) : 0)
+    ctx.fillText(ln, 0, 0)
+    ctx.restore()
+  })
+  if (doodle && doodle !== "none") {
+    drawDoodle(ctx, doodle, W / 2, ty + lines.length * size * 1.22 + 30, 46, ink + "b3")
+  }
+}
+
+/**
+ * Renders the full paper note (surface + live text + doodle + author/category
+ * tag) as a PNG data URL. Used for the exact "what you see is what you get"
+ * compose preview — the text is drawn by canvas (via `drawCardText`), not the
+ * browser, so it matches the final pinned card instead of a smaller text field.
+ */
+export function renderNotePreview(surface: string, p: CardTextureInput): Promise<string> {
+  // `surface` is the memoized (stable) paper dataURL, so re-rendering on each
+  // keystroke only redraws the text/doodle and never reshuffles the paper.
+  return new Promise<string>((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const W = img.naturalWidth
+      const H = img.naturalHeight
+      const c = document.createElement("canvas")
+      c.width = W
+      c.height = H
+      const ctx = c.getContext("2d")!
+      ctx.drawImage(img, 0, 0, W, H)
+      drawCardText(ctx, W, H, p.text, p.doodle, p.font, PAPERS[p.paper] || PAPERS.classic, false)
+      resolve(c.toDataURL("image/png"))
+    }
+    img.onerror = () => resolve(surface)
+    img.src = surface
+  })
 }
 
 export function makePaperTexture(p: CardTextureInput) {
@@ -302,42 +366,62 @@ export function makePaperTexture(p: CardTextureInput) {
   } else {
     ctx.strokeRect(4, 4, W - 8, H - 8)
   }
-  const ink = def.ink || "#463a2b"
-  const pad = def.spiral ? 62 : 44
-  const serif = p.font === "serif"
-  let size = serif ? 56 : 52
-  ctx.textAlign = "center"
-  ctx.textBaseline = "middle"
-  let lines: string[] = []
-  for (;;) {
-    ctx.font = serif
-      ? `600 ${size}px 'Cormorant Garamond', 'Ma Shan Zheng', serif`
-      : `600 ${size}px Caveat, 'Liu Jian Mao Cao', cursive`
-    lines = wrapText(ctx, p.text, W - pad * 2)
-    if (lines.length * size * 1.22 < H * 0.62 || size < 30) break
-    size -= 3
-  }
-  const totalH = lines.length * size * 1.22
-  const ty = H / 2 - totalH / 2 + size * 0.6 - H * 0.04
-  ctx.fillStyle = ink
-  lines.forEach((ln, i) => {
-    ctx.save()
-    ctx.translate(W / 2 + rnd(-3, 3), ty + i * size * 1.22 + rnd(-2, 2))
-    ctx.rotate(rnd(-0.012, 0.012))
-    ctx.fillText(ln, 0, 0)
-    ctx.restore()
-  })
-  if (p.doodle && p.doodle !== "none") {
-    drawDoodle(ctx, p.doodle, W / 2, ty + lines.length * size * 1.22 + 30, 46, ink + "b3")
+  if (p.handwriting) {
+    // Hand-drawn note: render the transparent ink strokes over the paper.
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      const iw = img.width
+      const ih = img.height
+      const maxW = W - 60
+      const maxH = H - 60
+      const s = Math.min(maxW / iw, maxH / ih)
+      const dw = iw * s
+      const dh = ih * s
+      ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh)
+      tex.needsUpdate = true
+    }
+    img.src = p.handwriting
+  } else {
+    drawCardText(ctx, W, H, p.text, p.doodle ?? "none", p.font, def, true)
   }
   ctx.restore()
-  if (p.status && p.status !== "active") {
-    drawStatusStamp(ctx, p.status, W, H)
+  // small author + category tags at the bottom of the card
+  const tag = [p.author, p.category].filter(Boolean).join("  ·  ")
+  if (tag) {
+    ctx.font = "500 17px 'Cormorant Garamond', 'Songti SC', serif"
+    ctx.fillStyle = withAlpha(def.ink || "#4a4234", 0.55)
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    ctx.fillText(tag, W / 2, H - 18)
   }
   const tex = new THREE.CanvasTexture(c)
   tex.colorSpace = THREE.SRGBColorSpace
   tex.anisotropy = 8
   return { tex, ratio: H / W }
+}
+
+/**
+ * Render just the paper surface (no text, no doodle) plus the author/category
+ * tag at the bottom, as a PNG data URL. Used as the live background of the
+ * compose text field so the input looks like the card you are about to pin.
+ */
+export function makePaperBackground(p: {
+  paper: PaperKind
+  author?: string
+  category?: string
+}): string {
+  const r = makePaperTexture({
+    text: "",
+    paper: p.paper,
+    font: "hand",
+    doodle: "none",
+    type: "note",
+    author: p.author,
+    category: p.category,
+  })
+  const img = r.tex.image as HTMLCanvasElement
+  return img.toDataURL("image/png")
 }
 
 function drawUserPhoto(
@@ -372,7 +456,7 @@ function applyUserPhoto(
 export function makePhotoTexture(p: CardTextureInput, img?: HTMLImageElement | null) {
   const W = 512
   const m = 34
-  const capH = 86
+  const capH = 100
   const pw = W - m * 2
   // Card ratio scales with the uploaded image so the photo fills without crop/gap.
   let ratio = 1.24
@@ -492,8 +576,17 @@ export function makePhotoTexture(p: CardTextureInput, img?: HTMLImageElement | n
       capLines[1] = capLines[1]!.slice(0, -1) + "…"
     }
     const capLh = capSize * 1.2
-    const capTop = m + ph + 43 - ((capLines.length - 1) * capLh) / 2
+    const capTop = m + ph + 50 - ((capLines.length - 1) * capLh) / 2
     capLines.forEach((ln, i) => ctx.fillText(ln, W / 2, capTop + i * capLh))
+  }
+  // small author + category tag at the bottom, consistent with paper cards
+  const tag = [p.author, p.category].filter(Boolean).join("  ·  ")
+  if (tag) {
+    ctx.font = "500 17px 'Cormorant Garamond', 'Songti SC', serif"
+    ctx.fillStyle = "rgba(70,60,45,.55)"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    ctx.fillText(tag, W / 2, H - 16)
   }
   const tex = new THREE.CanvasTexture(c)
   tex.colorSpace = THREE.SRGBColorSpace

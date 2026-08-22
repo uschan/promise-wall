@@ -27,8 +27,6 @@ export function ModPanel() {
 
   const [tab, setTab] = useState<Tab>("promises")
   const [profiles, setProfiles] = useState<Profile[]>([])
-  const [templates, setTemplates] = useState("")
-  const [quotes, setQuotes] = useState("")
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES)
   const [rateLimit, setRateLimit] = useState(1)
 
@@ -41,8 +39,6 @@ export function ModPanel() {
     try {
       const [p, s] = await Promise.all([fetchAllProfiles(), fetchSettings()])
       setProfiles(p)
-      setTemplates((s.templates ?? []).join("\n"))
-      setQuotes((s.quotes ?? []).join("\n"))
       setCategories(s.categories ?? DEFAULT_CATEGORIES)
       setRateLimit(s.rateLimit ?? 1)
     } catch {
@@ -74,8 +70,6 @@ export function ModPanel() {
 
   const save = async () => {
     await saveSettings({
-      templates: templates.split("\n").map((s) => s.trim()).filter(Boolean),
-      quotes: quotes.split("\n").map((s) => s.trim()).filter(Boolean),
       categories,
       rateLimit: Math.max(1, rateLimit),
     })
@@ -145,6 +139,26 @@ export function ModPanel() {
                       <div className="mod-text">{p.text}</div>
                       <div className="mod-meta">{p.author}</div>
                     </div>
+                    {(p.imageData || p.photo || p.handwriting) && (
+                      <span className="marks">
+                        {(p.imageData || p.photo) && (
+                          <span className="mark photo" title="Image">
+                            <svg viewBox="0 0 24 24">
+                              <rect x="3" y="5" width="18" height="14" rx="2" />
+                              <circle cx="9" cy="10" r="2" />
+                              <path d="M21 15l-5-4-9 8" />
+                            </svg>
+                          </span>
+                        )}
+                        {p.handwriting && (
+                          <span className="mark hand" title="Hand-drawn">
+                            <svg viewBox="0 0 24 24">
+                              <path d="M5 19l1-4L17 4l3 3L9 18z" />
+                            </svg>
+                          </span>
+                        )}
+                      </span>
+                    )}
                     <div className="mod-actions">
                       <button className="mod-btn remove" onClick={() => void removePromise(p.id)}>
                         {t("mod.remove")}
@@ -183,10 +197,6 @@ export function ModPanel() {
 
         {tab === "settings" && (
           <div id="settingsView">
-            <label>{t("mod.set.templates")}</label>
-            <textarea rows={5} value={templates} onChange={(e) => setTemplates(e.target.value)} />
-            <label>{t("mod.set.quotes")}</label>
-            <textarea rows={6} value={quotes} onChange={(e) => setQuotes(e.target.value)} />
             <label>{t("mod.set.categories")}</label>
             <div id="setCategories">
               {categories.map((c, i) => (

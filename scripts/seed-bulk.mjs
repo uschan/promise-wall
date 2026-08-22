@@ -68,7 +68,8 @@ for (let i = 0; i < 200; i++) {
     type: isPhoto ? "photo" : "note",
     photo: isPhoto ? (i % 2 ? "beach" : "mountain") : undefined,
     x: (col - 4.5) * 7.6 + rand(-1.6, 1.6),
-    y: 27 - row * 2.9 + rand(-0.7, 0.7),
+    // keep cards above the floor line (y >= -11) so the floor plane never slices them
+    y: 22 - row * 1.7 + rand(-0.5, 0.5),
     rot: rand(-3, 3),
     w: rand(3.6, 5.4),
     attach: ATTACHES[i % ATTACHES.length],

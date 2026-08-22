@@ -14,12 +14,9 @@ export type PaperKind =
   | "polaroid"
   | "sticky"
   | "staff"
-
-export type PromiseStatus = "active" | "kept" | "shelved"
+  | "dark"
 
 export type ReactionType = "heart" | "thumbs" | "fire" | "smile" | "muscle"
-
-export type Reflection = { who: string; text: string }
 
 export type Category = {
   key: string
@@ -39,6 +36,8 @@ export type PromiseItem = {
   tags?: string[]
   doodle?: string
   imageData?: string
+  /** Transparent-ink PNG (data URL or Storage URL) of a hand-drawn note. */
+  handwriting?: string
   x?: number
   y?: number
   w?: number
@@ -47,17 +46,14 @@ export type PromiseItem = {
   font?: string
   pinColor?: number
   photo?: string
-  status?: PromiseStatus
   createdAt?: number
   /** Runtime-only fields (not persisted in `data`). */
   user_id?: string | null
   support?: number
   saves?: number
-  reflect?: number
   _saved?: boolean
   _reacted?: Set<ReactionType>
   _reactionCounts?: Record<string, number>
-  _refl?: Reflection[]
 }
 
 export type Profile = {
@@ -68,8 +64,6 @@ export type Profile = {
 }
 
 export type Settings = {
-  templates?: string[]
-  quotes?: string[]
   categories?: Category[]
   rateLimit?: number
 }

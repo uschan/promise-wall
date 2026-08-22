@@ -39,6 +39,26 @@ export function AllView() {
                   {p.category ? categoryLabel(p.category, lang, categories) : ""}
                 </span>
                 <span className="av-text">{p.text}</span>
+                {(p.imageData || p.photo || p.handwriting) && (
+                  <span className="marks">
+                    {(p.imageData || p.photo) && (
+                      <span className="mark photo" title="Image">
+                        <svg viewBox="0 0 24 24">
+                          <rect x="3" y="5" width="18" height="14" rx="2" />
+                          <circle cx="9" cy="10" r="2" />
+                          <path d="M21 15l-5-4-9 8" />
+                        </svg>
+                      </span>
+                    )}
+                    {p.handwriting && (
+                      <span className="mark hand" title="Hand-drawn">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M5 19l1-4L17 4l3 3L9 18z" />
+                        </svg>
+                      </span>
+                    )}
+                  </span>
+                )}
                 <span className="av-meta">{p.author}</span>
               </button>
             ))

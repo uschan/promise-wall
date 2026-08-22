@@ -22,11 +22,23 @@ const FLOOR_Y = -21
 const WALL_TOP = 62
 const ROOM_H = WALL_TOP - FLOOR_Y
 
+// The placeable band on the wall. The bounds are intentionally generous (≈ the
+// whole wall mesh) so new cards can fill the entire visible wall — including the
+// empty area above the seeded grid — instead of being clamped into a tiny middle
+// band that fights the pointer at the top. The camera pan range is what actually
+// limits where you can reach, so the clamp is never the binding constraint and
+// there is no invisible "ceiling" where a card snaps down.
+const PLACE_X = ROOM_W / 2 - 6   // ≈104 (±) — the full wall width
+const PLACE_TOP = WALL_TOP - 6   // ≈56 — no artificial ceiling
+const PLACE_BOTTOM = -11         // keep card bottoms above the floor so the floor
+                                 // plane never slices through the lower row of cards
+
 const FONTS = [
   "600 40px Caveat",
   "600 40px 'Cormorant Garamond'",
   "400 40px 'Liu Jian Mao Cao'",
   "400 40px 'Ma Shan Zheng'",
+  "400 40px 'LXGW WenKai TC'",
 ]
 
 type Attach = "pin" | "tape" | "clip"
@@ -39,7 +51,7 @@ type CardLayout = {
   paper: PaperKind
   attach: Attach
   pinColor: number
-  font: "hand" | "serif"
+  font: string
   doodle: string
   type: "note" | "photo"
 }
@@ -87,7 +99,7 @@ function layoutCard(p: PromiseItem, i: number): CardLayout {
     paper: p.paper ?? papers[(seed + 5) % papers.length]!,
     attach: (p.attach as Attach) ?? attaches[(seed + 6) % attaches.length]!,
     pinColor: p.pinColor ?? golds[(seed + 7) % golds.length]!,
-    font: p.font === "serif" ? "serif" : p.font === "hand" ? "hand" : seeded(seed + 8, 0, 1) < 0.3 ? "serif" : "hand",
+    font: p.font ?? (seeded(seed + 8, 0, 1) < 0.3 ? "serif" : "hand"),
     doodle: p.doodle ?? doodles[(seed + 9) % doodles.length]!,
     type: p.imageData || p.photo ? "photo" : "note",
   }
@@ -136,12 +148,15 @@ export class WallEngine {
   private addAnchor = new THREE.Vector3(1.4, -2.9, 0.6)
   private hintAnchor = new THREE.Vector3(0.5, -4.0, 0.6)
   private proj = new THREE.Vector3()
+  private cardActionsAnchor = new THREE.Vector3()
   private raf = 0
   private disposed = false
   private resizeHandler: () => void
   private dustGeo: THREE.BufferGeometry | null = null
   private dustVelocities: [number, number][] = []
   private last = performance.now()
+  private szW = 0
+  private szH = 0
 
   // camera drag/zoom state
   private cam = { x: 0, y: 0, z: 40, tx: 0, ty: 0, tz: 40 }
@@ -154,8 +169,8 @@ export class WallEngine {
 
   constructor(canvas: HTMLCanvasElement) {
     activeEngine = this
-    const w = window.innerWidth
-    const h = window.innerHeight
+    const w = this.vw()
+    const h = this.vh()
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -169,18 +184,61 @@ export class WallEngine {
     this.camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 200)
     this.camera.position.set(0, 0, 40)
 
-    this.scene.background = new THREE.Color("#ddd4c2")
-    this.scene.fog = new THREE.Fog(0xd7cdb9, 70, 160)
+    this.scene.background = this.makeSceneBackground()
+    this.scene.fog = new THREE.Fog(0xded6c5, 320, 900)
     this.scene.add(this.group)
 
     this.buildRoom()
     this.buildDust()
     this.bindInput()
 
+    // Resize on window resize AND on the iOS "visual viewport" (fires when the
+    // Safari toolbar collapses/expands, when plain `resize` does not). Without
+    // this the canvas can stay too short on first load, leaving a blank strip
+    // under the dock until the page is refreshed.
     this.resizeHandler = () => this.resize()
     window.addEventListener("resize", this.resizeHandler)
+    window.addEventListener("orientationchange", this.resizeHandler)
+    window.visualViewport?.addEventListener("resize", this.resizeHandler)
 
     this.loop()
+  }
+
+  private vw(): number {
+    return (
+      window.visualViewport?.width ??
+      document.documentElement.clientWidth ??
+      window.innerWidth
+    )
+  }
+  private vh(): number {
+    return (
+      window.visualViewport?.height ??
+      document.documentElement.clientHeight ??
+      window.innerHeight
+    )
+  }
+
+  /**
+   * A soft vertical warm gradient used as the scene background. It matches the
+   * wall tone at the top and deepens to a shadow toward the bottom, so that if
+   * the camera ever frames past the floor, the empty region reads as a soft
+   * shadow — never as a stark flat "blank band".
+   */
+  private makeSceneBackground(): THREE.Texture {
+    const c = document.createElement("canvas")
+    c.width = 2
+    c.height = 256
+    const ctx = c.getContext("2d")!
+    const g = ctx.createLinearGradient(0, 0, 0, 256)
+    g.addColorStop(0, "#ded6c5")
+    g.addColorStop(0.72, "#d3c8b2")
+    g.addColorStop(1, "#b8ab92")
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, 2, 256)
+    const tex = new THREE.CanvasTexture(c)
+    tex.colorSpace = THREE.SRGBColorSpace
+    return tex
   }
 
   private async loadFonts(sample: string) {
@@ -202,8 +260,8 @@ export class WallEngine {
 
     const next = new Map(promises.map((p) => [p.id, p]))
 
-    // Keep cards whose content is unchanged (reactions/saves/reflections don't
-    // affect the card texture), so a data refresh never "shakes" the wall.
+    // Keep cards whose content is unchanged (reactions/saves don't affect the
+    // card texture), so a data refresh never "shakes" the wall.
     const keep: THREE.Group[] = []
     for (const g of this.cards) {
       const prev = g.userData.p as PromiseItem
@@ -241,9 +299,9 @@ export class WallEngine {
       prev.paper !== p.paper ||
       prev.font !== p.font ||
       prev.doodle !== p.doodle ||
-      prev.status !== p.status ||
       prev.imageData !== p.imageData ||
-      prev.photo !== p.photo
+      prev.photo !== p.photo ||
+      prev.handwriting !== p.handwriting
     )
   }
 
@@ -279,10 +337,12 @@ export class WallEngine {
       paper: L.paper,
       font: L.font,
       doodle: L.doodle,
-      status: p.status,
       type: L.type,
       imageData: p.imageData,
       photo: p.photo,
+      handwriting: p.handwriting,
+      author: p.author,
+      category: p.category,
     }
     let tex: THREE.Texture
     let ratio: number
@@ -444,18 +504,22 @@ export class WallEngine {
         metalness: 0,
       }),
     )
-    wall.position.y = (WALL_TOP + FLOOR_Y) / 2
+    // Drop the wall 1 unit below the floor line and bring the floor's near edge
+    // slightly behind the wall, so the wall-floor corner overlaps instead of
+    // leaving a hairline crack. Enlarge both so no camera angle exposes the
+    // background beneath the floor.
+    wall.position.y = (WALL_TOP + FLOOR_Y) / 2 - 1.0
     wall.receiveShadow = true
     this.scene.add(wall)
 
     const woodTex = makeWoodTexture()
-    woodTex.repeat.set(9, 4)
+    woodTex.repeat.set(11, 4)
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(ROOM_W, 110),
+      new THREE.PlaneGeometry(ROOM_W + 400, 800),
       new THREE.MeshStandardMaterial({ map: woodTex, color: 0xa8825c, roughness: 0.62, metalness: 0.06 }),
     )
     floor.rotation.x = -Math.PI / 2
-    floor.position.set(0, FLOOR_Y, 55)
+    floor.position.set(0, FLOOR_Y, 399.75)
     floor.receiveShadow = true
     this.scene.add(floor)
 
@@ -622,8 +686,8 @@ export class WallEngine {
     const p = this.placing.p
     this.placing = null
     this.renderer.domElement.style.cursor = ""
-    const fx = clamp(x, -WALL_W / 2 + 4, WALL_W / 2 - 4)
-    const fy = clamp(y, -WALL_H / 2 + 4, WALL_H / 2 - 4)
+    const fx = clamp(x, -PLACE_X, PLACE_X)
+    const fy = clamp(y, PLACE_BOTTOM, PLACE_TOP)
     p.x = fx
     p.y = fy
     const finalRot = (rnd(-3, 3) * Math.PI) / 180
@@ -777,6 +841,9 @@ export class WallEngine {
 
   setSelected(id: string | null) {
     let target: THREE.Group | null = null
+    // Find the top of the stack so the selected card floats above every overlap.
+    let maxBaseZ = 0.24
+    for (const g of this.cards) maxBaseZ = Math.max(maxBaseZ, g.position.z)
     for (const g of this.cards) {
       const u = g.userData
       if (id && g.userData.id === id) {
@@ -785,7 +852,7 @@ export class WallEngine {
         // Drop the hover glow so the enlarged card shows its true colors
         // instead of carrying the warm hover highlight.
         gsap.to(u.glow, { v: 0, duration: 0.4 })
-        u.tLift = 0.9
+        u.tLift = maxBaseZ + 0.4 - u.baseZ
         u.tSc = 1.05
       } else {
         gsap.to(u.dim, { v: id ? 0.62 : 0, duration: 0.6, ease: "power2.out" })
@@ -795,10 +862,11 @@ export class WallEngine {
     }
     this.selected = target
     if (target) {
-      // Pan so the card sits just left of the right-hand panel, then zoom in.
+      // Center the enlarged card (the right-hand detail panel is gone), then zoom
+      // in so the on-card action bar sits right under it.
       gsap.to(this.cam, {
-        tx: clamp(target.position.x + 4.5, -20, 20),
-        ty: clamp(target.position.y, -11, 11),
+        tx: clamp(target.position.x, -40, 40),
+        ty: clamp(target.position.y, -18, 30),
         tz: 19,
         duration: 1.1,
         ease: "power3.inOut",
@@ -820,14 +888,14 @@ export class WallEngine {
     const v = this.wallPointAt(cx, cy)
     if (!v) return null
     return {
-      x: clamp(v.x, -WALL_W / 2 + 4, WALL_W / 2 - 4),
-      y: clamp(v.y, -WALL_H / 2 + 4, WALL_H / 2 - 4),
+      x: clamp(v.x, -PLACE_X, PLACE_X),
+      y: clamp(v.y, PLACE_BOTTOM, PLACE_TOP),
     }
   }
 
   private onPointerMove = (e: PointerEvent) => {
-    this.ndc.x = (e.clientX / window.innerWidth) * 2 - 1
-    this.ndc.y = -(e.clientY / window.innerHeight) * 2 + 1
+    this.ndc.x = (e.clientX / this.vw()) * 2 - 1
+    this.ndc.y = -(e.clientY / this.vh()) * 2 + 1
     this.px = e.clientX
     this.py = e.clientY
     if (this.placing) {
@@ -835,10 +903,14 @@ export class WallEngine {
       return
     }
     if (this.downPos) {
-      const dx = (e.clientX - this.downPos.sx) / window.innerWidth
-      const dy = (e.clientY - this.downPos.sy) / window.innerHeight
-      this.cam.tx = clamp(this.downPos.cx - dx * this.cam.z * 1.5, -26, 26)
-      this.cam.ty = clamp(this.downPos.cy + dy * this.cam.z * 1.0, -14, 14)
+      // Normalize BOTH axes by the same dimension and use the same factor so the
+      // wall pans 1:1 with the finger in horizontal AND vertical. Previously the
+      // vertical axis used a smaller factor and the taller viewport, so on a
+      // narrow (phone) portrait screen dragging up/down barely moved the wall.
+      const dx = (e.clientX - this.downPos.sx) / this.vh()
+      const dy = (e.clientY - this.downPos.sy) / this.vh()
+      this.cam.tx = clamp(this.downPos.cx - dx * this.cam.z * 1.25, -36, 36)
+      this.cam.ty = clamp(this.downPos.cy + dy * this.cam.z * 1.25, -18, 27)
       if (Math.hypot(e.clientX - this.downPos.sx, e.clientY - this.downPos.sy) > 3) this.moved = true
       return
     }
@@ -893,6 +965,12 @@ export class WallEngine {
     const dt = Math.min(0.05, (now - this.last) / 1000)
     this.last = now
     const t = now / 1000
+    // Catch iOS Safari's dynamic viewport (toolbar collapse/expand) even when the
+    // browser does not fire a `resize` event, so the canvas never leaves a blank
+    // strip at the bottom. Cheap: only re-sizes when the size actually changed.
+    const vw = this.vw()
+    const vh = this.vh()
+    if ((vw !== this.szW || vh !== this.szH) && vw && vh) this.resize()
     this.cam.x += (this.cam.tx - this.cam.x) * 0.08
     this.cam.y += (this.cam.ty - this.cam.y) * 0.08
     this.cam.z += (this.cam.tz - this.cam.z) * 0.08
@@ -945,11 +1023,11 @@ export class WallEngine {
     // placement preview physics: lag + velocity tilt + edge auto-pan
     if (this.placing) {
       const M = 80
-      const sp = 26 * dt * (this.cam.z / 40)
-      if (this.px < M) this.cam.tx = clamp(this.cam.tx - sp * (1 - this.px / M), -26, 26)
-      if (this.px > window.innerWidth - M) this.cam.tx = clamp(this.cam.tx + sp * (1 - (window.innerWidth - this.px) / M), -26, 26)
-      if (this.py < M) this.cam.ty = clamp(this.cam.ty + sp * (1 - this.py / M), -14, 14)
-      if (this.py > window.innerHeight - M) this.cam.ty = clamp(this.cam.ty - sp * (1 - (window.innerHeight - this.py) / M), -14, 14)
+      const sp = 16 * dt * (this.cam.z / 40)
+      if (this.px < M) this.cam.tx = clamp(this.cam.tx - sp * (1 - this.px / M), -36, 36)
+      if (this.px > this.vw() - M) this.cam.tx = clamp(this.cam.tx + sp * (1 - (this.vw() - this.px) / M), -36, 36)
+      if (this.py < M) this.cam.ty = clamp(this.cam.ty + sp * (1 - this.py / M), -18, 27)
+      if (this.py > this.vh() - M) this.cam.ty = clamp(this.cam.ty - sp * (1 - (this.vh() - this.py) / M), -18, 27)
       const rt = this.wallPointAt(this.px, this.py)
       if (rt) this.placing.target.copy(rt)
       const g = this.placing.group
@@ -970,22 +1048,40 @@ export class WallEngine {
     const addBtn = document.getElementById("addBtn")
     if (addBtn) {
       this.proj.copy(this.addAnchor).project(this.camera)
-      addBtn.style.left = (this.proj.x * 0.5 + 0.5) * window.innerWidth + "px"
-      addBtn.style.top = (-this.proj.y * 0.5 + 0.5) * window.innerHeight + "px"
+      addBtn.style.left = (this.proj.x * 0.5 + 0.5) * this.vw() + "px"
+      addBtn.style.top = (-this.proj.y * 0.5 + 0.5) * this.vh() + "px"
     }
     const addHint = document.getElementById("addHint")
     if (addHint) {
       this.proj.copy(this.hintAnchor).project(this.camera)
-      addHint.style.left = (this.proj.x * 0.5 + 0.5) * window.innerWidth + "px"
-      addHint.style.top = (-this.proj.y * 0.5 + 0.5) * window.innerHeight + "px"
+      addHint.style.left = (this.proj.x * 0.5 + 0.5) * this.vw() + "px"
+      addHint.style.top = (-this.proj.y * 0.5 + 0.5) * this.vh() + "px"
+    }
+    // on-card action bar: project a point just below the enlarged card
+    const cardActions = document.getElementById("cardActions")
+    if (cardActions && this.selected) {
+      const u = this.selected.userData
+      const s = this.selected.scale.x
+      const rot = this.selected.rotation.z
+      const halfH = (u.h * s) / 2
+      this.cardActionsAnchor.set(
+        this.selected.position.x + halfH * Math.sin(rot),
+        this.selected.position.y - halfH * Math.cos(rot) - 0.35,
+        this.selected.position.z,
+      )
+      this.proj.copy(this.cardActionsAnchor).project(this.camera)
+      cardActions.style.left = (this.proj.x * 0.5 + 0.5) * this.vw() + "px"
+      cardActions.style.top = (-this.proj.y * 0.5 + 0.5) * this.vh() + "px"
     }
     this.renderer.render(this.scene, this.camera)
   }
 
   private resize() {
-    const w = window.innerWidth
-    const h = window.innerHeight
+    const w = this.vw()
+    const h = this.vh()
     if (!w || !h) return
+    this.szW = w
+    this.szH = h
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(w, h)
@@ -1002,6 +1098,8 @@ export class WallEngine {
     el.removeEventListener("wheel", this.onWheel)
     el.removeEventListener("click", this.onClick)
     window.removeEventListener("resize", this.resizeHandler)
+    window.removeEventListener("orientationchange", this.resizeHandler)
+    window.visualViewport?.removeEventListener("resize", this.resizeHandler)
     this.scene.traverse((o) => {
       if (o instanceof THREE.Mesh) {
         o.geometry.dispose()

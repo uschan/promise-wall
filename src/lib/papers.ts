@@ -126,4 +126,12 @@ export const PAPERS: Record<PaperKind, PaperStyle> = {
     lines: "staff",
     grain: 0.05,
   },
+  dark: {
+    label: "Charcoal",
+    base: "#2c2c31",
+    ink: "#f5f3ee",
+    torn: false,
+    lines: "none",
+    grain: 0.06,
+  },
 }
